@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "378623875173",
+    "project_id": "alertatemprana-47c0e",
+    "storage_bucket": "alertatemprana-47c0e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:378623875173:android:00489fdffb3e77b09f0e8c",
+        "android_client_info": {
+          "package_name": "com.example.alertatemprana"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB627Kuv03ECXbnkx0SwBgRFHhaNZBkdw0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

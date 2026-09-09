@@ -1,6 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+
+
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -60,4 +63,6 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
     implementation("androidx.camera:camera-video:$cameraxVersion")
     implementation("androidx.camera:camera-view:$cameraxVersion")
+
+    implementation(platform("com.google.firebase:firebase-bom:34.18.0"))
 }
