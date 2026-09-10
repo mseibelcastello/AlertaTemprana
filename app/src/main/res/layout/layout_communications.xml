@@ -6,63 +6,18 @@
     android:gravity="center"
     android:padding="16dp">
 
-    <androidx.camera.view.PreviewView
-        android:id="@+id/viewFinder"
-        android:layout_width="match_parent"
-        android:layout_height="360dp"
-        android:visibility="gone"/>
-
-    <Button
-        android:id="@+id/btnStart"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Iniciar Grabación"/>
-
-    <Button
-        android:id="@+id/btnStop"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Detener Grabación"
-        android:enabled="false"/>
-
-    <Button
-        android:id="@+id/btnVideo"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Grabar Video" />
-
-    <Button
-        android:id="@+id/btnSelfie"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Grabar Selfie" />
-
-    <Button
-        android:id="@+id/btnVerUltima"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Ver Última Grabación" />
-
     <TextView
-        android:id="@+id/titulo_contactos"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Contactos de emergencia"
-        android:textSize="18sp"
+        android:text="Comunicaciones"
+        android:textSize="24sp"
         android:textStyle="bold" />
 
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true">
-
-        <LinearLayout
-            android:id="@+id/listaContactos"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-    </ScrollView>
+    <Button
+        android:id="@+id/btnGrabar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Nuevo Registro (Audio/Video)" />
 
 </LinearLayout>
