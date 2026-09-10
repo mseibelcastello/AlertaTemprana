@@ -18,7 +18,10 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +37,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
+import org.osmdroid.util.MapTileIndex
+import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.example.alertatemprana.R
@@ -43,6 +51,17 @@ import com.example.alertatemprana.data.source.device.Linterna
 import com.example.alertatemprana.data.source.device.Ubicacion
 import com.example.alertatemprana.data.source.firebase.ContactoEmergencia
 import com.example.alertatemprana.data.source.firebase.ContactosRepository
+
+private val esriTileSource = object : OnlineTileSourceBase(
+    "EsriWorldStreetMap", 0, 19, 256, ".png",
+    arrayOf("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/"),
+    "Powered by Esri"
+) {
+    override fun getTileURLString(pMapTileIndex: Long): String {
+        return baseUrl + MapTileIndex.getZoom(pMapTileIndex) + "/" +
+            MapTileIndex.getY(pMapTileIndex) + "/" + MapTileIndex.getX(pMapTileIndex) + ".png"
+    }
+}
 
 private fun descripcionTiempo(codigo: Int): String {
     return when (codigo) {
@@ -107,6 +126,7 @@ private fun pedirHttp(url: String): String {
     val conn = URL(url).openConnection() as HttpURLConnection
     conn.connectTimeout = 8000
     conn.readTimeout = 8000
+    conn.setRequestProperty("User-Agent", "AlertaTemprana/1.0 (mseibelcastello@gmail.com)")
     val datos = conn.inputStream.bufferedReader().use { it.readText() }
     conn.disconnect()
     return datos
@@ -131,6 +151,80 @@ private fun obtenerNombreLugar(lat: Double, lon: Double): String? {
     } catch (_: Exception) {
         null
     }
+}
+
+private fun obtenerDireccionExacta(lat: Double, lon: Double): String {
+    return try {
+        val json = JSONObject(
+            pedirHttp(
+                "https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon" +
+                    "&format=jsonv2&addressdetails=1&accept-language=es&zoom=18"
+            )
+        )
+        val a = json.optJSONObject("address")
+        if (a == null) return ""
+        val calle = a.optString("house_number") to a.optString("road")
+        val partes = mutableListOf<String>()
+        listOf(calle.second, calle.first)
+            .filter { it.isNotBlank() }.joinToString(" ").trim().let {
+                if (it.isNotBlank()) partes += it
+            }
+        listOf(
+            a.optString("suburb"),
+            a.optString("town").ifBlank { a.optString("city") },
+            a.optString("state"),
+            a.optString("postcode")
+        ).filter { it.isNotBlank() && it !in partes }.forEach { partes += it }
+        partes.joinToString(", ")
+    } catch (_: Exception) {
+        ""
+    }
+}
+
+private fun obtenerDireccion(lat: Double, lon: Double): String {
+    return try {
+        val json = JSONObject(
+            pedirHttp(
+                "https://api.bigdatacloud.net/data/reverse-geocode-client?" +
+                    "latitude=$lat&longitude=$lon&localityLanguage=es&addressdetails=1"
+            )
+        )
+        val calle = listOf(json.optString("street"), json.optString("houseNumber"))
+            .filter { it.isNotBlank() }.joinToString(" ").trim()
+        val ciudad = json.optString("locality").ifBlank { json.optString("city") }
+        val region = json.optString("principalSubdivision")
+            .ifBlank { json.optString("countryName") }
+        listOf(calle, ciudad, region).filter { it.isNotBlank() }.joinToString(", ")
+    } catch (_: Exception) {
+        ""
+    }
+}
+
+private fun obtenerDireccionFoton(lat: Double, lon: Double): String {
+    return try {
+        val json = JSONObject(
+            pedirHttp("https://photon.komoot.io/reverse?lat=$lat&lon=$lon&lang=es")
+        )
+        val prop = json.optJSONArray("features")
+            ?.optJSONObject(0)?.optJSONObject("properties") ?: return ""
+        listOf(
+            prop.optString("street"),
+            prop.optString("housenumber"),
+            prop.optString("city").ifBlank { prop.optString("town") },
+            prop.optString("state"),
+            prop.optString("country")
+        ).filter { it.isNotBlank() }.joinToString(", ")
+    } catch (_: Exception) {
+        ""
+    }
+}
+
+private fun buscarDireccion(lat: Double, lon: Double): String {
+    val exacta = obtenerDireccionExacta(lat, lon)
+    if (exacta.isNotBlank()) return exacta
+    val generica = obtenerDireccion(lat, lon)
+    if (generica.isNotBlank()) return generica
+    return obtenerDireccionFoton(lat, lon)
 }
 
 @Composable
@@ -564,10 +658,131 @@ fun HomeScreen() {
 
 @Composable
 fun PersonalScreen() {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val ubicacion = remember { Ubicacion(context) }
+    val permisoConcedido = remember { mutableStateOf(false) }
+    val mapView = remember { mutableStateOf<MapView?>(null) }
+    val marcador = remember { mutableStateOf<Marker?>(null) }
+    val primeraPosicion = remember { mutableStateOf(true) }
+    val tvDireccion = remember { mutableStateOf<TextView?>(null) }
+    val ultimoGeo = remember { mutableStateOf(0L) }
+    val scope = rememberCoroutineScope()
+
+    fun actualizarPosicion(lat: Double, lon: Double) {
+        val mapa = mapView.value ?: return
+        val punto = GeoPoint(lat, lon)
+        val mark = marcador.value ?: Marker(mapa).also {
+            it.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+            it.title = "Mi ubicación"
+            mapa.overlays.add(it)
+            marcador.value = it
+        }
+        mark.position = punto
+        if (primeraPosicion.value) {
+            mapa.controller.setZoom(18.0)
+            primeraPosicion.value = false
+        }
+        mapa.controller.setCenter(punto)
+        mapa.invalidate()
+
+        val ahora = System.currentTimeMillis()
+        if (ahora - ultimoGeo.value >= 30_000) {
+            ultimoGeo.value = ahora
+            scope.launch(Dispatchers.IO) {
+                val dir = buscarDireccion(lat, lon)
+                withContext(Dispatchers.Main) {
+                    tvDireccion.value?.text = dir.ifBlank { "Dirección no disponible" }
+                }
+            }
+        }
+    }
+
+    fun iniciarSeguimiento() {
+        if (!permisoConcedido.value) return
+        ubicacion.iniciarSeguimiento { location ->
+            actualizarPosicion(location.latitude, location.longitude)
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        permisoConcedido.value = granted
+        if (granted) {
+            ubicacion.obtenerUltima()?.let { actualizarPosicion(it.first, it.second) }
+            iniciarSeguimiento()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        permisoConcedido.value = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!permisoConcedido.value) {
+            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        } else {
+            iniciarSeguimiento()
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    mapView.value?.onResume()
+                    iniciarSeguimiento()
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    ubicacion.detenerSeguimiento()
+                    mapView.value?.onPause()
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            ubicacion.detenerSeguimiento()
+            mapView.value?.onDetach()
+        }
+    }
+
     AndroidView(
         modifier = Modifier.fillMaxSize(),
-        factory = { context ->
-            LayoutInflater.from(context).inflate(R.layout.layout_personal, null)
+        factory = { ctx ->
+            val vista = LayoutInflater.from(ctx).inflate(R.layout.layout_personal, null)
+            val mapa = vista.findViewById<MapView>(R.id.mapPersonal)
+            (mapa.layoutParams as LinearLayout.LayoutParams).let {
+                it.height = ctx.resources.displayMetrics.heightPixels / 2
+                it.weight = 0f
+                mapa.layoutParams = it
+            }
+            mapa.setTileSource(esriTileSource)
+            mapa.setMultiTouchControls(true)
+            mapa.controller.setZoom(15.0)
+            mapa.controller.setCenter(GeoPoint(-35.6566, -63.7575))
+
+            if (ContextCompat.checkSelfPermission(
+                    ctx, Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                ubicacion.obtenerUltima()?.let {
+                    mapa.controller.setZoom(18.0)
+                    mapa.controller.setCenter(GeoPoint(it.first, it.second))
+                    marcador.value = Marker(mapa).also { m ->
+                        m.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                        m.title = "Mi ubicación"
+                        m.position = GeoPoint(it.first, it.second)
+                        mapa.overlays.add(m)
+                    }
+                    primeraPosicion.value = false
+                }
+            }
+
+            tvDireccion.value = vista.findViewById(R.id.tvDireccion)
+            mapView.value = mapa
+            vista
         }
     )
 }

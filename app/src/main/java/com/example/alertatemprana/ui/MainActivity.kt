@@ -25,10 +25,15 @@ import kotlinx.coroutines.launch
 import android.content.Context
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
+import org.osmdroid.config.Configuration
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val sharedPrefs = getSharedPreferences("osmdroid", MODE_PRIVATE)
+        Configuration.getInstance().load(this, sharedPrefs)
+        Configuration.getInstance().userAgentValue =
+            "AlertaTemprana/1.0 (mseibelcastello@gmail.com)"
         enableEdgeToEdge()
         setContent {
             AlertaTempranaTheme {
