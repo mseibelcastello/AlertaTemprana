@@ -1,14 +1,9 @@
-package com.example.alertatemprana.data.source.firebase
+package com.example.alertatemprana.datos.firebase
 
+import com.example.alertatemprana.modelos.RegistroUbicacion
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import java.util.Date
-
-data class RegistroUbicacion(
-    val direccion: String,
-    val fecha: Date?
-)
 
 class UbicacionesRepository {
 

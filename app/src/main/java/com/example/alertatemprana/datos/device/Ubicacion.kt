@@ -1,4 +1,4 @@
-package com.example.alertatemprana.data.source.device
+package com.example.alertatemprana.datos.device
 
 import android.content.Context
 import android.location.Location

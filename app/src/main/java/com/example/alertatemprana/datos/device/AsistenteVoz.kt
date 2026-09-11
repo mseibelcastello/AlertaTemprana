@@ -1,4 +1,4 @@
-package com.example.alertatemprana.data.source.device
+package com.example.alertatemprana.datos.device
 
 import android.content.Context
 import android.content.Intent
@@ -6,12 +6,7 @@ import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
-
-enum class ComandoVoz {
-    ENCENDER_LINTERNA,
-    APAGAR_LINTERNA,
-    DESCONOCIDO
-}
+import com.example.alertatemprana.modelos.ComandoVoz
 
 fun interpretarComando(texto: String): ComandoVoz {
     val t = texto.lowercase()
@@ -90,10 +85,6 @@ class AsistenteVoz(context: Context) {
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
         }
         reco.startListening(intent)
-    }
-
-    fun detener() {
-        reconocedor?.cancel()
     }
 
     fun cerrar() {

@@ -1,15 +1,9 @@
-package com.example.alertatemprana.data.source.firebase
+package com.example.alertatemprana.datos.firebase
 
 import android.util.Log
+import com.example.alertatemprana.modelos.AlertaCatastrofe
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
-
-data class AlertaCatastrofe(
-    val id: String,
-    val tipo: String,
-    val descripcion: String,
-    val activa: Boolean
-)
 
 class AlertasRepository {
 

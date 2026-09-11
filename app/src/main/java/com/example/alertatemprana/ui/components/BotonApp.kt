@@ -15,13 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.alertatemprana.ui.theme.Advertencia
-import com.example.alertatemprana.ui.theme.Emergencia
 import com.example.alertatemprana.ui.theme.Primario
-import com.example.alertatemprana.ui.theme.Secundario
-import com.example.alertatemprana.ui.theme.Seguro
-
-enum class VarianteBoton { PRIMARIO, SECUNDARIO, ADVERTENCIA, SEGURO, EMERGENCIA }
 
 @Composable
 fun BotonApp(
@@ -29,16 +23,9 @@ fun BotonApp(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icono: ImageVector? = null,
-    enabled: Boolean = true,
-    variante: VarianteBoton = VarianteBoton.PRIMARIO
+    enabled: Boolean = true
 ) {
-    val container = when (variante) {
-        VarianteBoton.PRIMARIO -> Primario
-        VarianteBoton.SECUNDARIO -> Secundario
-        VarianteBoton.ADVERTENCIA -> Advertencia
-        VarianteBoton.SEGURO -> Seguro
-        VarianteBoton.EMERGENCIA -> Emergencia
-    }
+    val container = Primario
     val colors = ButtonDefaults.buttonColors(containerColor = container)
 
     Button(

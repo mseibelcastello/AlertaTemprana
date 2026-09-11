@@ -1,25 +1,22 @@
 package com.example.alertatemprana.ui
 
 import android.os.Bundle
+import android.widget.Toast
+import android.content.Context
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Call
-import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.WarningAmber
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
@@ -27,34 +24,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.example.alertatemprana.datos.device.AlertaDispositivo
+import com.example.alertatemprana.datos.firebase.AlertasRepository
+import com.example.alertatemprana.modelos.AlertaCatastrofe
+import com.example.alertatemprana.ui.pantallas.CommunicationsScreen
+import com.example.alertatemprana.ui.pantallas.HomeScreen
+import com.example.alertatemprana.ui.pantallas.PantallaAlerta
+import com.example.alertatemprana.ui.pantallas.PersonalScreen
 import com.example.alertatemprana.ui.theme.AlertaTempranaTheme
-import com.example.alertatemprana.ui.theme.Emergencia
-import com.example.alertatemprana.ui.theme.Superficie
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.runtime.rememberCoroutineScope
-import com.example.alertatemprana.data.source.device.AlertaDispositivo
-import com.example.alertatemprana.data.source.firebase.AlertaCatastrofe
-import com.example.alertatemprana.data.source.firebase.AlertasRepository
-import com.example.alertatemprana.ui.screens.CommunicationsScreen
-import com.example.alertatemprana.ui.screens.HomeScreen
-import com.example.alertatemprana.ui.screens.PersonalScreen
 import kotlinx.coroutines.launch
-import android.content.Context
-import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraManager
-import android.widget.Toast
 import org.osmdroid.config.Configuration
 
 class MainActivity : ComponentActivity() {
@@ -182,64 +165,6 @@ fun AlertaTempranaApp() {
                     }
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun PantallaAlerta(alerta: AlertaCatastrofe, onEnterado: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Emergencia)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.WarningAmber,
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(64.dp)
-        )
-        Text(
-            text = "ALERTA ACTIVA",
-            color = Color.White,
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 12.dp)
-        )
-        Text(
-            text = alerta.tipo,
-            color = Color.White,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 16.dp)
-        )
-        Text(
-            text = alerta.descripcion,
-            color = Color.White,
-            fontSize = 16.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 16.dp)
-        )
-        androidx.compose.material3.Button(
-            onClick = onEnterado,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Superficie,
-                contentColor = Emergencia
-            ),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .padding(top = 32.dp)
-                .height(56.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Check,
-                contentDescription = null,
-                modifier = Modifier.size(22.dp)
-            )
-            Text(" Entendido", fontSize = 16.sp)
         }
     }
 }

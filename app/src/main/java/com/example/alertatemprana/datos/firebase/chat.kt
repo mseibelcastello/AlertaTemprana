@@ -1,17 +1,11 @@
-package com.example.alertatemprana.data.source.firebase
+package com.example.alertatemprana.datos.firebase
 
+import com.example.alertatemprana.modelos.MensajeChat
 import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ServerValue
-
-data class MensajeChat(
-    val id: String,
-    val texto: String,
-    val emisor: String,
-    val timestamp: Long
-)
 
 class ChatRepository {
 

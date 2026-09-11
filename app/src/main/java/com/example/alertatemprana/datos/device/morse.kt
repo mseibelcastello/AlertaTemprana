@@ -1,4 +1,4 @@
-package com.example.alertatemprana.data.source.device
+package com.example.alertatemprana.datos.device
 
 const val PUNTO_MS = 200L
 const val RAYA_MS = 600L

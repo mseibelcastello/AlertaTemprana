@@ -1,12 +1,8 @@
-package com.example.alertatemprana.data.source.firebase
+package com.example.alertatemprana.datos.firebase
 
+import com.example.alertatemprana.modelos.ContactoEmergencia
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
-
-data class ContactoEmergencia(
-    val nombre: String,
-    val telefono: String
-)
 
 class ContactosRepository {
 

@@ -6,9 +6,5 @@
     <color name="superficie">#FFFFFF</color>
     <color name="texto_principal">#1F2933</color>
     <color name="texto_secundario">#667085</color>
-    <color name="emergencia">#D64545</color>
-    <color name="advertencia">#E89B3D</color>
-    <color name="seguro">#3A9D72</color>
-    <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 </resources>
