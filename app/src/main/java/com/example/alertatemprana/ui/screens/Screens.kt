@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -29,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -469,6 +471,16 @@ fun HomeScreen() {
     val contactoPendienteState = remember { mutableStateOf<ContactoEmergencia?>(null) }
     val contactosRepository = remember { ContactosRepository() }
     val mostrarContactosState = remember { mutableStateOf(false) }
+    val mostrarGuia = remember { mutableStateOf(false) }
+    val guiaSeleccionada = remember { mutableStateOf<String?>(null) }
+
+    BackHandler(enabled = mostrarGuia.value) {
+        if (guiaSeleccionada.value != null) {
+            guiaSeleccionada.value = null
+        } else {
+            mostrarGuia.value = false
+        }
+    }
 
     fun cargarClima(vista: WebView?, lat: Double, lon: Double) {
         vista?.loadUrl(
@@ -628,7 +640,19 @@ fun HomeScreen() {
         }
     }
 
-    if (mostrarContactosState.value) {
+    if (mostrarGuia.value) {
+        if (guiaSeleccionada.value != null) {
+            GuiaDetalleScreen(
+                catastrofe = guiaSeleccionada.value!!,
+                onCerrar = { guiaSeleccionada.value = null }
+            )
+        } else {
+            GuiaScreen(
+                onSeleccionar = { guiaSeleccionada.value = it },
+                onCerrar = { mostrarGuia.value = false }
+            )
+        }
+    } else if (mostrarContactosState.value) {
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { ctx ->
@@ -705,10 +729,179 @@ fun HomeScreen() {
                 val tvBateriaView = view.findViewById<TextView>(R.id.tvBateria)
                 tvBateria = tvBateriaView
                 tvBateriaView.text = bateria.resumen()
+                val btnGuia = view.findViewById<Button>(R.id.btnGuia)
+                btnGuia.setOnClickListener {
+                    mostrarGuia.value = true
+                }
                 view
             }
         )
     }
+}
+
+data class GuiaCatastrofe(
+    val id: String,
+    val titulo: String,
+    val descripcion: String,
+    val imagen: Int,
+    val videoUrl: String,
+    val pasos: List<String>
+)
+
+private val guias = listOf(
+    GuiaCatastrofe(
+        id = "terremoto",
+        titulo = "Terremoto",
+        descripcion = "Un sismo o terremoto es un movimiento brusco de la tierra, causado por la liberación repentina de energía dentro de la misma tierra. En Argentina se producen por el contacto de la placa de Nazca con la placa Sudamericana, sobre todo en las provincias del oeste, aunque ninguna parte del país está exenta de este fenómeno.",
+        imagen = R.drawable.terremoto,
+        videoUrl = "https://www.youtube.com/embed/UUGT39JINoI",
+        pasos = listOf(
+            "Mantené la calma y ubicate en un lugar seguro, debajo de un elemento firme y si no es posible, junto a él.",
+            "Cortá la energía eléctrica y cerrá las llaves de paso de agua y gas.",
+            "Para iluminar, usá linternas. Velas, fósforos o encendedores pueden provocar explosiones en caso de fuga de gas.",
+            "En la calle, mantenete alejado de edificios, postes y cables eléctricos.",
+            "Si estás conduciendo, disminuí la velocidad. En lo posible, detenete en un lugar seguro.",
+            "Protegéte la cabeza y el cuello con los brazos y esperá instrucciones de las autoridades.",
+            "Si quedaste encerrado/a o atrapado/a, mantené la calma y solicitá auxilio."
+        )
+    ),
+    GuiaCatastrofe(
+        id = "inundacion",
+        titulo = "Inundación",
+        descripcion = "Una inundación se produce cuando hay un rápido crecimiento del nivel del agua que cubre o llena determinadas áreas. En la Argentina se producen por lluvias intensas, fuertes vientos, deshielo, desborde de represas o actividades humanas como la tala de árboles o la impermeabilización de suelos.",
+        imagen = R.drawable.inundacion,
+        videoUrl = "https://www.youtube.com/embed/0toqpF7tFN4",
+        pasos = listOf(
+            "Conservá la calma. Cerrá la llave de gas, agua y cortá la electricidad.",
+            "Evacuá hacia una zona segura, que por lo general son las más altas.",
+            "Si te sorprende el agua dentro de la vivienda, evitá sótanos y planta baja. Llamá a los Bomberos para que te ayuden a evacuar.",
+            "Mantené cerradas puertas y ventanas, para evitar corrientes de agua dentro de la vivienda.",
+            "No usés ningún tipo de vehículo como auto, moto o bicicleta.",
+            "No te ubiques cerca de postes de electricidad o cables.",
+            "Si hay heridos, llamá a las autoridades. No intentés moverlos.",
+            "No intentés caminar o nadar por caminos inundados o cauces de río.",
+            "Tomá agua potabilizada, no utilicés el agua de la canilla."
+        )
+    ),
+    GuiaCatastrofe(
+        id = "incendio",
+        titulo = "Incendio forestal",
+        descripcion = "Un incendio forestal es un fuego descontrolado de rápida propagación que afecta a bosques, llanuras, pastizales y pasturas, entre otras. El 95% de los incendios forestales son producidos por la mano del hombre: fogatas y colillas mal apagadas, abandono de tierras o preparación de áreas de pastoreo con fuego.",
+        imagen = R.drawable.incendio_forestal,
+        videoUrl = "https://www.youtube.com/embed/7M_7DP6EQJw",
+        pasos = listOf(
+            "Mantené las puertas y ventanas totalmente cerradas para evitar el ingreso del humo y de las chispas.",
+            "Tratá que el suelo alrededor de la vivienda esté húmedo para evitar el avance del fuego.",
+            "No salgas de tu casa a menos que el personal de bomberos o de las Fuerzas de Seguridad te lo indique, o que el riesgo de incendio de la vivienda sea inminente.",
+            "Si la autoridad determina la evacuación, acatá las indicaciones. Procurá cubrirte boca y nariz con un paño, para no inhalar humo.",
+            "No vuelvas a un área quemada. Los sitios calientes pueden reactivarse sin previo aviso.",
+            "Nunca te sitúes en la parte alta de una montaña ni corras en sentido ascendente: el fuego avanza al subir hasta 17 veces más rápido que tú.",
+            "Si la situación se torna peligrosa, acostate en el suelo y tratá de respirar a través de una prenda mojada.",
+            "Si estás en una ruta y ves una columna de humo, avisá de inmediato a los bomberos."
+        )
+    )
+)
+
+@Composable
+fun GuiaScreen(
+    onSeleccionar: (String) -> Unit,
+    onCerrar: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Guía de acción",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            androidx.compose.material3.Button(onClick = onCerrar) {
+                Text("Volver")
+            }
+        }
+
+        Text(
+            "Seleccioná una catástrofe para ver cómo actuar",
+            fontSize = 14.sp,
+            color = Color.Gray,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 8.dp)
+        ) {
+            items(guias) { g ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                        .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
+                        .clickable { onSeleccionar(g.id) }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        g.titulo,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text("→", fontSize = 18.sp, color = Color.Gray)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GuiaDetalleScreen(catastrofe: String, onCerrar: () -> Unit) {
+    val g = guias.firstOrNull { it.id == catastrofe } ?: return
+    AndroidView(
+        modifier = Modifier.fillMaxSize(),
+        factory = { ctx ->
+            val view = LayoutInflater.from(ctx).inflate(R.layout.layout_guia_detalle, null)
+            val btnVolver = view.findViewById<Button>(R.id.btnVolverGuia)
+            btnVolver.setOnClickListener { onCerrar() }
+            val tvTitulo = view.findViewById<TextView>(R.id.tvTituloGuia)
+            tvTitulo.text = g.titulo
+            val tvDesc = view.findViewById<TextView>(R.id.tvGuiaDescripcion)
+            tvDesc.text = g.descripcion
+            val img = view.findViewById<android.widget.ImageView>(R.id.imgGuia)
+            img.setImageResource(g.imagen)
+            val web = view.findViewById<WebView>(R.id.webVideoGuia)
+            val videoId = g.videoUrl.substringAfterLast("/")
+            web.settings.javaScriptEnabled = true
+            web.settings.domStorageEnabled = true
+            web.settings.loadWithOverviewMode = true
+            web.settings.useWideViewPort = true
+            web.settings.mediaPlaybackRequiresUserGesture = false
+            web.settings.userAgentString =
+                "Mozilla/5.0 (Linux; Android 10; SM-A505FN) AppleWebKit/537.36 " +
+                    "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+            web.webChromeClient = WebChromeClient()
+            web.loadUrl("https://www.youtube.com/embed/$videoId?playsinline=1&rel=0&modestbranding=1")
+            val contenedor = view.findViewById<LinearLayout>(R.id.listaPasosGuia)
+            g.pasos.forEach { paso ->
+                val tv = TextView(ctx).apply {
+                    text = "• $paso"
+                    textSize = 14f
+                    setPadding(0, 6, 0, 6)
+                }
+                contenedor.addView(tv)
+            }
+            view
+        }
+    )
 }
 
 @Composable
