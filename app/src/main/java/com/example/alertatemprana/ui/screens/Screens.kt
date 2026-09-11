@@ -72,12 +72,15 @@ import org.osmdroid.views.overlay.Marker
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.example.alertatemprana.R
+import com.example.alertatemprana.data.source.device.AsistenteVoz
 import com.example.alertatemprana.data.source.device.Bateria
+import com.example.alertatemprana.data.source.device.ComandoVoz
 import com.example.alertatemprana.data.source.device.GrabadorAudio
 import com.example.alertatemprana.data.source.device.GrabadorVideo
 import com.example.alertatemprana.data.source.device.Linterna
 import com.example.alertatemprana.data.source.device.TransmisorMorse
 import com.example.alertatemprana.data.source.device.Ubicacion
+import com.example.alertatemprana.data.source.device.interpretarComando
 import com.example.alertatemprana.data.source.device.textoAMorse
 import com.example.alertatemprana.data.source.firebase.ChatRepository
 import com.example.alertatemprana.data.source.firebase.ContactoEmergencia
@@ -483,6 +486,8 @@ fun HomeScreen() {
     var tvClimaCond: TextView? = null
     var tvClimaDet: TextView? = null
     var tvBateria: TextView? = null
+    var tvVozEstado: TextView? = null
+    var btnFlashLocal: Button? = null
     val latDefecto = -35.6566
     val lonDefecto = -63.7575
 
@@ -492,6 +497,66 @@ fun HomeScreen() {
     val mostrarContactosState = remember { mutableStateOf(false) }
     val mostrarGuia = remember { mutableStateOf(false) }
     val guiaSeleccionada = remember { mutableStateOf<String?>(null) }
+
+    val asistenteVoz = remember { AsistenteVoz(context) }
+
+    val escucharVoz: () -> Unit = {
+        if (asistenteVoz.disponible) {
+            asistenteVoz.escuchar(
+            onTexto = { texto ->
+                when (interpretarComando(texto)) {
+                    ComandoVoz.ENCENDER_LINTERNA -> {
+                        if (!device.isOn) device.toggle()
+                        btnFlashLocal?.text = "Apagar"
+                        tvVozEstado?.text = "Comando: \"$texto\" → linterna encendida"
+                        Toast.makeText(context, "Linterna encendida", Toast.LENGTH_SHORT).show()
+                    }
+                    ComandoVoz.APAGAR_LINTERNA -> {
+                        device.turnOff()
+                        btnFlashLocal?.text = "Encender"
+                        tvVozEstado?.text = "Comando: \"$texto\" → linterna apagada"
+                        Toast.makeText(context, "Linterna apagada", Toast.LENGTH_SHORT).show()
+                    }
+                    ComandoVoz.DESCONOCIDO -> {
+                        tvVozEstado?.text = "No entendí \"$texto\""
+                        Toast.makeText(context, "No entendí el comando", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            onEstado = { msg -> tvVozEstado?.text = msg },
+            onError = { msg ->
+                tvVozEstado?.text = msg
+                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            }
+        )
+        } else {
+            Toast.makeText(
+                context,
+                "Reconocimiento de voz no disponible en este dispositivo",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    val launcherVoz = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (concedido) {
+            escucharVoz()
+        } else {
+            Toast.makeText(
+                context,
+                "Se requiere el micrófono para el comando de voz",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            asistenteVoz.cerrar()
+        }
+    }
 
     BackHandler(enabled = mostrarGuia.value) {
         if (guiaSeleccionada.value != null) {
@@ -737,9 +802,22 @@ fun HomeScreen() {
                     cargarClimaYUbicacion(lat, lon, gps != null)
                 }
                 val btnFlash = view.findViewById<Button>(R.id.btn_flash)
+                btnFlashLocal = btnFlash
                 btnFlash.setOnClickListener {
                     device.toggle()
                     btnFlash.text = if (device.isOn) "Apagar" else "Encender"
+                }
+                tvVozEstado = view.findViewById(R.id.tvVozEstado)
+                val btnVoz = view.findViewById<Button>(R.id.btnVoz)
+                btnVoz.setOnClickListener {
+                    if (ContextCompat.checkSelfPermission(
+                            ctx, Manifest.permission.RECORD_AUDIO
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        escucharVoz()
+                    } else {
+                        launcherVoz.launch(Manifest.permission.RECORD_AUDIO)
+                    }
                 }
                 val btnContactosHome = view.findViewById<Button>(R.id.btnContactosHome)
                 btnContactosHome.setOnClickListener {
