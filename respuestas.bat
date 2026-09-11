@@ -15,6 +15,7 @@ echo 3 - Por favor, indicame tu ubicacion.
 echo 4 - Mantenete alejado de la zona afectada.
 echo 5 - Comunicate con los servicios de emergencia.
 echo 6 - Gracias por comunicarte con asistencia.
+echo 7 - Escribir respuesta personalizada
 echo 0 - Salir
 echo.
 set /p opcion=Opcion:
@@ -25,12 +26,30 @@ if "%opcion%"=="3" set "respuesta=Por favor, indicame tu ubicacion." & goto ENVI
 if "%opcion%"=="4" set "respuesta=Mantenete alejado de la zona afectada." & goto ENVIAR
 if "%opcion%"=="5" set "respuesta=Comunicate con los servicios de emergencia." & goto ENVIAR
 if "%opcion%"=="6" set "respuesta=Gracias por comunicarte con asistencia." & goto ENVIAR
+if "%opcion%"=="7" goto PERSONALIZADA
 if "%opcion%"=="0" goto FIN
 
 echo.
 echo Opcion no valida.
 pause
 goto MENU
+
+:PERSONALIZADA
+cls
+echo ==========================================
+echo       RESPUESTA PERSONALIZADA
+echo ==========================================
+echo.
+set /p respuesta=Escriba la respuesta:
+
+if "%respuesta%"=="" (
+echo.
+echo No se ingreso ninguna respuesta.
+pause
+goto MENU
+)
+
+goto ENVIAR
 
 :ENVIAR
 cls
@@ -44,12 +63,10 @@ echo.
 echo Enviando respuesta...
 echo.
 
-REM Crear JSON temporal
 (
 echo {"emisor":"representante","texto":"%respuesta%","timestamp":%RANDOM%}
 ) > respuesta.json
 
-REM Enviar JSON a Firebase
 curl -X POST -H "Content-Type: application/json" --data-binary "@respuesta.json" "https://alertatemprana-47c0e-default-rtdb.firebaseio.com/mensajes.json"
 
 if errorlevel 1 (
@@ -72,4 +89,3 @@ goto MENU
 cls
 echo Cerrando asistencia...
 timeout /t 2 >nul
-
