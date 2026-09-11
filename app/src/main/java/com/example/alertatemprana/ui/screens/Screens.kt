@@ -35,8 +35,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -73,7 +76,9 @@ import com.example.alertatemprana.data.source.device.Bateria
 import com.example.alertatemprana.data.source.device.GrabadorAudio
 import com.example.alertatemprana.data.source.device.GrabadorVideo
 import com.example.alertatemprana.data.source.device.Linterna
+import com.example.alertatemprana.data.source.device.TransmisorMorse
 import com.example.alertatemprana.data.source.device.Ubicacion
+import com.example.alertatemprana.data.source.device.textoAMorse
 import com.example.alertatemprana.data.source.firebase.ChatRepository
 import com.example.alertatemprana.data.source.firebase.ContactoEmergencia
 import com.example.alertatemprana.data.source.firebase.ContactosRepository
@@ -276,6 +281,7 @@ fun CommunicationsScreen() {
     var btnVerUltima: Button? = null
     var btnGrabar: Button? = null
     var btnChat: Button? = null
+    var btnMorse: Button? = null
 
     val empezarVideoGrabacion: (Boolean) -> Unit = { esSelfie ->
         viewFinder?.visibility = View.VISIBLE
@@ -303,9 +309,14 @@ fun CommunicationsScreen() {
 
     val mostrarGrabacionState = remember { mutableStateOf(false) }
     val mostrarChat = remember { mutableStateOf(false) }
+    val mostrarMorse = remember { mutableStateOf(false) }
 
-    BackHandler(enabled = mostrarChat.value) {
-        mostrarChat.value = false
+    BackHandler(enabled = mostrarChat.value || mostrarMorse.value) {
+        if (mostrarMorse.value) {
+            mostrarMorse.value = false
+        } else {
+            mostrarChat.value = false
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -441,6 +452,10 @@ fun CommunicationsScreen() {
                 btnChat?.setOnClickListener {
                     mostrarChat.value = true
                 }
+                btnMorse = view.findViewById(R.id.btnMorse)
+                btnMorse?.setOnClickListener {
+                    mostrarMorse.value = true
+                }
                 view
             }
         )
@@ -448,6 +463,10 @@ fun CommunicationsScreen() {
 
         if (mostrarChat.value) {
             ChatScreen(onCerrar = { mostrarChat.value = false })
+        }
+
+        if (mostrarMorse.value) {
+            TraductorMorseScreen(onCerrar = { mostrarMorse.value = false })
         }
     }
 }
@@ -1266,6 +1285,165 @@ fun ChatScreen(onCerrar: () -> Unit) {
                 modifier = Modifier.padding(start = 8.dp)
             ) {
                 Text("Enviar")
+            }
+        }
+    }
+}
+
+@Composable
+fun TraductorMorseScreen(onCerrar: () -> Unit) {
+    val context = LocalContext.current
+    val transmisor = remember { TransmisorMorse(context) }
+    val scope = rememberCoroutineScope()
+    val transmitiendo = remember { mutableStateOf(false) }
+    val palabras = listOf("SOS", "AYUDA", "PELIGRO", "SALIR")
+    var permisoPendiente: String? = null
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (concedido) {
+            permisoPendiente?.let { palabra ->
+                transmisor.transmitirConLinterna(
+                    palabra, scope,
+                    onInicio = { transmitiendo.value = true },
+                    onFin = { transmitiendo.value = false }
+                )
+                permisoPendiente = null
+            }
+        } else {
+            Toast.makeText(
+                context,
+                "Permiso de cámara requerido para la linterna",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            transmisor.cerrar()
+        }
+    }
+
+    BackHandler(onBack = onCerrar)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F5F5))
+            .padding(16.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Text(
+                text = "Traductor Morse",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Elegí una palabra y un modo de señal:",
+                modifier = Modifier.padding(top = 8.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            palabras.forEach { palabra ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                        .background(Color.White, RoundedCornerShape(12.dp))
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = palabra,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.width(110.dp)
+                        )
+                        Text(
+                            text = textoAMorse(palabra),
+                            fontSize = 13.sp,
+                            color = Color(0xFF555555)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        androidx.compose.material3.Button(
+                            onClick = {
+                                if (transmisor.flashDisponible) {
+                                    if (ContextCompat.checkSelfPermission(
+                                            context, Manifest.permission.CAMERA
+                                        ) == PackageManager.PERMISSION_GRANTED
+                                    ) {
+                                        transmisor.transmitirConLinterna(
+                                            palabra, scope,
+                                            onInicio = { transmitiendo.value = true },
+                                            onFin = { transmitiendo.value = false }
+                                        )
+                                    } else {
+                                        permisoPendiente = palabra
+                                        launcher.launch(Manifest.permission.CAMERA)
+                                    }
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Linterna no disponible en este dispositivo",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
+                            enabled = !transmitiendo.value
+                        ) {
+                            Text("🔦 Linterna")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        androidx.compose.material3.Button(
+                            onClick = {
+                                transmisor.transmitirConSonido(
+                                    palabra, scope,
+                                    onInicio = { transmitiendo.value = true },
+                                    onFin = { transmitiendo.value = false }
+                                )
+                            },
+                            enabled = !transmitiendo.value
+                        ) {
+                            Text("🔊 Sonido")
+                        }
+                    }
+                }
+            }
+
+            if (!transmisor.flashDisponible) {
+                Text(
+                    text = "⚠ Linterna no disponible en este dispositivo",
+                    color = Color(0xFFB71C1C),
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
+
+            if (transmitiendo.value) {
+                Text(
+                    text = "Transmitiendo…",
+                    color = Color(0xFF1565C0),
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            androidx.compose.material3.Button(
+                onClick = onCerrar,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Volver")
             }
         }
     }
