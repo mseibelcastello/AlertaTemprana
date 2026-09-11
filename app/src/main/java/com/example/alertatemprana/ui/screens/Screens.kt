@@ -17,6 +17,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -27,6 +28,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -51,6 +69,8 @@ import com.example.alertatemprana.data.source.device.Linterna
 import com.example.alertatemprana.data.source.device.Ubicacion
 import com.example.alertatemprana.data.source.firebase.ContactoEmergencia
 import com.example.alertatemprana.data.source.firebase.ContactosRepository
+import com.example.alertatemprana.data.source.firebase.RegistroUbicacion
+import com.example.alertatemprana.data.source.firebase.UbicacionesRepository
 
 private val esriTileSource = object : OnlineTileSourceBase(
     "EsriWorldStreetMap", 0, 19, 256, ".png",
@@ -661,15 +681,23 @@ fun PersonalScreen() {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val ubicacion = remember { Ubicacion(context) }
+    val repo = remember { UbicacionesRepository() }
     val permisoConcedido = remember { mutableStateOf(false) }
     val mapView = remember { mutableStateOf<MapView?>(null) }
     val marcador = remember { mutableStateOf<Marker?>(null) }
     val primeraPosicion = remember { mutableStateOf(true) }
     val tvDireccion = remember { mutableStateOf<TextView?>(null) }
+    val ultimaPos = remember { mutableStateOf<Pair<Double, Double>?>(null) }
     val ultimoGeo = remember { mutableStateOf(0L) }
+    val verUltimas = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
+    BackHandler(enabled = verUltimas.value) {
+        verUltimas.value = false
+    }
+
     fun actualizarPosicion(lat: Double, lon: Double) {
+        ultimaPos.value = lat to lon
         val mapa = mapView.value ?: return
         val punto = GeoPoint(lat, lon)
         val mark = marcador.value ?: Marker(mapa).also {
@@ -748,10 +776,11 @@ fun PersonalScreen() {
         }
     }
 
-    AndroidView(
-        modifier = Modifier.fillMaxSize(),
-        factory = { ctx ->
-            val vista = LayoutInflater.from(ctx).inflate(R.layout.layout_personal, null)
+    Box(modifier = Modifier.fillMaxSize()) {
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { ctx ->
+                val vista = LayoutInflater.from(ctx).inflate(R.layout.layout_personal, null)
             val mapa = vista.findViewById<MapView>(R.id.mapPersonal)
             (mapa.layoutParams as LinearLayout.LayoutParams).let {
                 it.height = ctx.resources.displayMetrics.heightPixels / 2
@@ -781,8 +810,132 @@ fun PersonalScreen() {
             }
 
             tvDireccion.value = vista.findViewById(R.id.tvDireccion)
+            vista.findViewById<Button>(R.id.btnRegistrarUbicacion).setOnClickListener { btn ->
+                val pos = ultimaPos.value ?: ubicacion.obtenerUltima()
+                if (pos == null) {
+                    Toast.makeText(
+                        ctx, "Todavía no hay ubicación disponible", Toast.LENGTH_SHORT
+                    ).show()
+                    return@setOnClickListener
+                }
+                btn.isEnabled = false
+                val direccionVisible = tvDireccion.value?.text?.toString() ?: ""
+                scope.launch(Dispatchers.IO) {
+                    val dir = obtenerDireccionExacta(pos.first, pos.second)
+                        .ifBlank { direccionVisible }
+                    withContext(Dispatchers.Main) {
+                        repo.guardar(
+                            latitud = pos.first,
+                            longitud = pos.second,
+                            direccion = dir,
+                            onOk = {
+                                Toast.makeText(
+                                    ctx, "Ubicación registrada", Toast.LENGTH_SHORT
+                                ).show()
+                                btn.isEnabled = true
+                            },
+                            onError = { err ->
+                                Toast.makeText(
+                                    ctx, "Error: $err", Toast.LENGTH_SHORT
+                                ).show()
+                                btn.isEnabled = true
+                            }
+                        )
+                    }
+                }
+            }
+            vista.findViewById<Button>(R.id.btnVerUltimas).setOnClickListener {
+                verUltimas.value = true
+            }
             mapView.value = mapa
             vista
         }
-    )
+        )
+
+        if (verUltimas.value) {
+            UltimasUbicacionesScreen(
+                repositorio = repo,
+                onCerrar = { verUltimas.value = false }
+            )
+        }
+    }
+}
+
+@Composable
+fun UltimasUbicacionesScreen(
+    repositorio: UbicacionesRepository,
+    onCerrar: () -> Unit
+) {
+    val registros = remember { mutableStateOf<List<RegistroUbicacion>>(emptyList()) }
+    val error = remember { mutableStateOf<String?>(null) }
+    val cargando = remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        repositorio.leerUltimas(
+            limite = 20,
+            onListo = { lista ->
+                registros.value = lista
+                cargando.value = false
+            },
+            onError = { msg ->
+                error.value = msg
+                cargando.value = false
+            }
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Últimos registros",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            Button(onClick = onCerrar) {
+                Text("Volver")
+            }
+        }
+
+        Column(modifier = Modifier.padding(top = 16.dp)) {
+            when {
+                cargando.value -> Text("Cargando...")
+                error.value != null -> Text("Error: ${error.value}")
+                registros.value.isEmpty() -> Text("Sin registros todavía")
+                else -> {
+                    val fmt = remember {
+                        SimpleDateFormat("dd/MM/yy HH:mm", Locale.getDefault())
+                    }
+                    LazyColumn {
+                        items(registros.value) { r ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
+                            ) {
+                                Text(
+                                    r.direccion.ifBlank { "Sin dirección" },
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    r.fecha?.let { fmt.format(it) } ?: "Fecha no disponible",
+                                    fontSize = 13.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
