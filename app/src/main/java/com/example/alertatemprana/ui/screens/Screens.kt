@@ -44,11 +44,20 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.FlashOn
+import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
@@ -82,12 +91,25 @@ import com.example.alertatemprana.data.source.device.TransmisorMorse
 import com.example.alertatemprana.data.source.device.Ubicacion
 import com.example.alertatemprana.data.source.device.interpretarComando
 import com.example.alertatemprana.data.source.device.textoAMorse
+import com.example.alertatemprana.data.source.firebase.AlertaCatastrofe
 import com.example.alertatemprana.data.source.firebase.ChatRepository
 import com.example.alertatemprana.data.source.firebase.ContactoEmergencia
 import com.example.alertatemprana.data.source.firebase.ContactosRepository
 import com.example.alertatemprana.data.source.firebase.MensajeChat
 import com.example.alertatemprana.data.source.firebase.RegistroUbicacion
 import com.example.alertatemprana.data.source.firebase.UbicacionesRepository
+import com.example.alertatemprana.ui.components.BotonApp
+import com.example.alertatemprana.ui.components.TileApp
+import com.example.alertatemprana.ui.theme.Emergencia
+import com.example.alertatemprana.ui.theme.Fondo
+import com.example.alertatemprana.ui.theme.Primario
+import com.example.alertatemprana.ui.theme.PrimarioClaro
+import com.example.alertatemprana.ui.theme.Secundario
+import com.example.alertatemprana.ui.theme.Seguro
+import com.example.alertatemprana.ui.theme.Superficie
+import com.example.alertatemprana.ui.theme.SuperficieVariante
+import com.example.alertatemprana.ui.theme.TextoPrincipal
+import com.example.alertatemprana.ui.theme.TextoSecundario
 
 private val esriTileSource = object : OnlineTileSourceBase(
     "EsriWorldStreetMap", 0, 19, 256, ".png",
@@ -282,9 +304,6 @@ fun CommunicationsScreen() {
     var btnVideo: Button? = null
     var btnSelfie: Button? = null
     var btnVerUltima: Button? = null
-    var btnGrabar: Button? = null
-    var btnChat: Button? = null
-    var btnMorse: Button? = null
 
     val empezarVideoGrabacion: (Boolean) -> Unit = { esSelfie ->
         viewFinder?.visibility = View.VISIBLE
@@ -443,25 +462,76 @@ fun CommunicationsScreen() {
         }
     )
         } else {
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { ctx ->
-                val view = LayoutInflater.from(ctx).inflate(R.layout.layout_communications, null)
-                btnGrabar = view.findViewById(R.id.btnGrabar)
-                btnGrabar?.setOnClickListener {
-                    mostrarGrabacionState.value = true
-                }
-                btnChat = view.findViewById(R.id.btnChat)
-                btnChat?.setOnClickListener {
-                    mostrarChat.value = true
-                }
-                btnMorse = view.findViewById(R.id.btnMorse)
-                btnMorse?.setOnClickListener {
-                    mostrarMorse.value = true
-                }
-                view
-            }
-        )
+Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .background(Primario)
+                        )
+                        Text(
+                            "COMUNICACIONES",
+                            color = TextoPrincipal,
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.5.sp,
+                            modifier = Modifier.padding(top = 10.dp)
+                        )
+                        Text(
+                            "Grabar · Chat · Morse",
+                            color = TextoSecundario,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TileApp(
+                etiqueta = "Morse",
+                dato = "SOS",
+                detalle = "Transmití en código Morse",
+                colorFondo = Primario,
+                onClick = { mostrarMorse.value = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 118.dp)
+            )
+            TileApp(
+                etiqueta = "Chat",
+                dato = "Asistencia",
+                detalle = "Mensajes de emergencia en vivo",
+                colorFondo = Secundario,
+                onClick = { mostrarChat.value = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .heightIn(min = 118.dp)
+            )
+            TileApp(
+                etiqueta = "Grabación",
+                dato = "Audio / Video",
+                detalle = "Crear un nuevo registro",
+                colorFondo = Superficie,
+                colorTexto = TextoPrincipal,
+                detalleColor = TextoSecundario,
+                onClick = { mostrarGrabacionState.value = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .heightIn(min = 118.dp)
+            )
+        }
     }
 
         if (mostrarChat.value) {
@@ -475,28 +545,37 @@ fun CommunicationsScreen() {
 }
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    alerta: AlertaCatastrofe?,
+    onIrAComunicaciones: () -> Unit,
+    onIrAPersonal: () -> Unit
+) {
     val context = LocalContext.current
     val device = remember { Linterna(context) }
     val bateria = remember { Bateria(context) }
     val ubicacion = remember { Ubicacion(context) }
     val scope = rememberCoroutineScope()
     var webViewClima: WebView? = null
-    var tvClimaTemp: TextView? = null
-    var tvClimaCond: TextView? = null
-    var tvClimaDet: TextView? = null
-    var tvBateria: TextView? = null
-    var tvVozEstado: TextView? = null
-    var btnFlashLocal: Button? = null
+
+    val clima = remember { mutableStateOf<ClimaActual?>(null) }
+    val climaEtiqueta = remember { mutableStateOf("General Pico, La Pampa") }
+    val bateriaEstado = remember { mutableStateOf(bateria.resumen()) }
+    val vozEstado = remember {
+        mutableStateOf("Tocá el micrófono y decí \"prende la linterna\"")
+    }
+    val linterna = remember { mutableStateOf(false) }
+
     val latDefecto = -35.6566
     val lonDefecto = -63.7575
 
     val contactosState = remember { mutableStateOf<List<ContactoEmergencia>>(emptyList()) }
+    val contactosError = remember { mutableStateOf<String?>(null) }
     val contactoPendienteState = remember { mutableStateOf<ContactoEmergencia?>(null) }
     val contactosRepository = remember { ContactosRepository() }
-    val mostrarContactosState = remember { mutableStateOf(false) }
     val mostrarGuia = remember { mutableStateOf(false) }
     val guiaSeleccionada = remember { mutableStateOf<String?>(null) }
+    val mostrarEmergencias = remember { mutableStateOf(false) }
+    val mostrarMorseHome = remember { mutableStateOf(false) }
 
     val asistenteVoz = remember { AsistenteVoz(context) }
 
@@ -507,25 +586,25 @@ fun HomeScreen() {
                 when (interpretarComando(texto)) {
                     ComandoVoz.ENCENDER_LINTERNA -> {
                         if (!device.isOn) device.toggle()
-                        btnFlashLocal?.text = "Apagar"
-                        tvVozEstado?.text = "Comando: \"$texto\" → linterna encendida"
+                        linterna.value = device.isOn
+                        vozEstado.value = "Comando: \"$texto\" → linterna encendida"
                         Toast.makeText(context, "Linterna encendida", Toast.LENGTH_SHORT).show()
                     }
                     ComandoVoz.APAGAR_LINTERNA -> {
                         device.turnOff()
-                        btnFlashLocal?.text = "Encender"
-                        tvVozEstado?.text = "Comando: \"$texto\" → linterna apagada"
+                        linterna.value = device.isOn
+                        vozEstado.value = "Comando: \"$texto\" → linterna apagada"
                         Toast.makeText(context, "Linterna apagada", Toast.LENGTH_SHORT).show()
                     }
                     ComandoVoz.DESCONOCIDO -> {
-                        tvVozEstado?.text = "No entendí \"$texto\""
+                        vozEstado.value = "No entendí \"$texto\""
                         Toast.makeText(context, "No entendí el comando", Toast.LENGTH_SHORT).show()
                     }
                 }
             },
-            onEstado = { msg -> tvVozEstado?.text = msg },
+            onEstado = { msg -> vozEstado.value = msg },
             onError = { msg ->
-                tvVozEstado?.text = msg
+                vozEstado.value = msg
                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
             }
         )
@@ -576,11 +655,11 @@ fun HomeScreen() {
 
     fun actualizarClimaActual(lat: Double, lon: Double, etiqueta: String) {
         scope.launch {
-            val (clima, error) = withContext(Dispatchers.IO) {
+            val (datos, error) = withContext(Dispatchers.IO) {
                 var error: String? = null
-                var clima: ClimaActual? = null
+                var datos: ClimaActual? = null
                 try {
-                    clima = parsearClimaActual(
+                    datos = parsearClimaActual(
                         pedirHttp(
                             "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon" +
                                 "&current=temperature_2m,relative_humidity_2m,weather_code," +
@@ -590,14 +669,14 @@ fun HomeScreen() {
                 } catch (e: Exception) {
                     error = e.message
                 }
-                clima to error
+                datos to error
             }
-            tvClimaTemp?.text = clima?.temperatura ?: "--"
-            tvClimaCond?.text = if (clima != null) etiqueta else "Clima actual no disponible"
-            tvClimaDet?.text = if (clima != null) {
-                "${clima.condicion} · ${clima.detalle}"
+            if (datos != null) {
+                clima.value = datos
+                climaEtiqueta.value = etiqueta
             } else {
-                error ?: ""
+                clima.value = null
+                climaEtiqueta.value = error ?: "Clima actual no disponible"
             }
         }
     }
@@ -649,9 +728,15 @@ fun HomeScreen() {
     }
 
     LaunchedEffect(Unit) {
-        contactosRepository.escuchar { lista ->
-            contactosState.value = lista
-        }
+        contactosRepository.escuchar(
+            onContactos = { lista ->
+                contactosState.value = lista
+                contactosError.value = null
+            },
+            onError = { e ->
+                contactosError.value = e.message ?: "Error desconocido"
+            }
+        )
     }
 
     LaunchedEffect(Unit) {
@@ -666,173 +751,280 @@ fun HomeScreen() {
     LaunchedEffect(Unit) {
         while (true) {
             delay(30_000)
-            tvBateria?.text = bateria.resumen()
+            bateriaEstado.value = bateria.resumen()
         }
     }
 
-    fun pintarContactos(vista: View, ctx: Context) {
-        val contenedor = vista.findViewById<LinearLayout>(R.id.listaContactos) ?: return
-        contenedor.removeAllViews()
-        val lista = contactosState.value
-        if (lista.isEmpty()) {
-            val aviso = TextView(ctx).apply {
-                text = "No hay contactos de emergencia"
-                textSize = 14f
-            }
-            contenedor.addView(aviso)
-        } else {
-            lista.forEach { contacto ->
-                val fila = LinearLayout(ctx).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    val margin = (8 * ctx.resources.displayMetrics.density).toInt()
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                    ).apply {
-                        topMargin = margin
-                        bottomMargin = margin
-                    }
-                }
-
-                val texto = TextView(ctx).apply {
-                    textSize = 16f
-                    text = "${contacto.nombre}\n${contacto.telefono}"
-                    layoutParams = LinearLayout.LayoutParams(
-                        0,
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        1f
+    Box(modifier = Modifier.fillMaxSize()) {
+        when {
+            mostrarGuia.value -> {
+                if (guiaSeleccionada.value != null) {
+                    GuiaDetalleScreen(
+                        catastrofe = guiaSeleccionada.value!!,
+                        onCerrar = { guiaSeleccionada.value = null }
+                    )
+                } else {
+                    GuiaScreen(
+                        onSeleccionar = { guiaSeleccionada.value = it },
+                        onCerrar = { mostrarGuia.value = false }
                     )
                 }
-
-                val boton = Button(ctx).apply { text = "Llamar" }
-                boton.setOnClickListener {
-                    if (ContextCompat.checkSelfPermission(
-                            ctx, Manifest.permission.CALL_PHONE
-                        ) == PackageManager.PERMISSION_GRANTED
-                    ) {
-                        llamarContacto(ctx, contacto)
-                    } else {
-                        contactoPendienteState.value = contacto
-                        callPermissionLauncher.launch(Manifest.permission.CALL_PHONE)
-                    }
-                }
-
-                fila.addView(texto)
-                fila.addView(boton)
-                contenedor.addView(fila)
             }
-        }
-    }
-
-    if (mostrarGuia.value) {
-        if (guiaSeleccionada.value != null) {
-            GuiaDetalleScreen(
-                catastrofe = guiaSeleccionada.value!!,
-                onCerrar = { guiaSeleccionada.value = null }
-            )
-        } else {
-            GuiaScreen(
-                onSeleccionar = { guiaSeleccionada.value = it },
-                onCerrar = { mostrarGuia.value = false }
-            )
-        }
-    } else if (mostrarContactosState.value) {
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { ctx ->
-                val view = LayoutInflater.from(ctx).inflate(R.layout.layout_contactos, null)
-                val btnVolver = view.findViewById<Button>(R.id.btnVolverContactos)
-                btnVolver.setOnClickListener { mostrarContactosState.value = false }
-                pintarContactos(view, ctx)
-                view
-            },
-            update = { view ->
-                pintarContactos(view, view.context)
-            }
-        )
-    } else {
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { ctx ->
-                val view = LayoutInflater.from(ctx).inflate(R.layout.layout_home, null)
-                val webView = view.findViewById<WebView>(R.id.webViewClima)
-                webViewClima = webView
-                webView.settings.javaScriptEnabled = true
-                webView.settings.domStorageEnabled = true
-                webView.settings.loadWithOverviewMode = true
-                webView.settings.useWideViewPort = true
-                webView.settings.userAgentString =
-                    "Mozilla/5.0 (Linux; Android 10; SM-A505FN) AppleWebKit/537.36 " +
-                        "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-                webView.webViewClient = object : WebViewClient() {
-                    override fun onReceivedError(
-                        view: WebView,
-                        request: WebResourceRequest,
-                        error: WebResourceError
-                    ) {
-                        if (request.isForMainFrame) {
-                            view.loadDataWithBaseURL(
-                                null,
-                                "<html><body style='text-align:center;padding:32px;color:#333;background:#fff;font-family:sans-serif;'>" +
-                                    "No se puede cargar el clima.<br>Revisá tu conexión a internet." +
-                                    "</body></html>",
-                                "text/html",
-                                "utf-8",
-                                null
-                            )
+            mostrarEmergencias.value -> {
+                EmergenciasScreen(
+                    lista = contactosState.value,
+                    error = contactosError.value,
+                    onLlamar = { contacto ->
+                        if (ContextCompat.checkSelfPermission(
+                                context, Manifest.permission.CALL_PHONE
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            llamarContacto(context, contacto)
+                        } else {
+                            contactoPendienteState.value = contacto
+                            callPermissionLauncher.launch(Manifest.permission.CALL_PHONE)
                         }
-                    }
-                }
-                tvClimaTemp = view.findViewById(R.id.tvClimaTemp)
-                tvClimaCond = view.findViewById(R.id.tvClimaCond)
-                tvClimaDet = view.findViewById(R.id.tvClimaDet)
-                webView.setBackgroundColor(android.graphics.Color.WHITE)
-                webView.post {
-                    val gps = if (ContextCompat.checkSelfPermission(
-                            ctx, Manifest.permission.ACCESS_FINE_LOCATION
-                        ) == PackageManager.PERMISSION_GRANTED
-                    ) {
-                        ubicacion.obtenerUltima()
-                    } else {
-                        null
-                    }
-                    val lat = gps?.first ?: latDefecto
-                    val lon = gps?.second ?: lonDefecto
-                    cargarClima(webView, lat, lon)
-                    cargarClimaYUbicacion(lat, lon, gps != null)
-                }
-                val btnFlash = view.findViewById<Button>(R.id.btn_flash)
-                btnFlashLocal = btnFlash
-                btnFlash.setOnClickListener {
-                    device.toggle()
-                    btnFlash.text = if (device.isOn) "Apagar" else "Encender"
-                }
-                tvVozEstado = view.findViewById(R.id.tvVozEstado)
-                val btnVoz = view.findViewById<Button>(R.id.btnVoz)
-                btnVoz.setOnClickListener {
-                    if (ContextCompat.checkSelfPermission(
-                            ctx, Manifest.permission.RECORD_AUDIO
-                        ) == PackageManager.PERMISSION_GRANTED
-                    ) {
-                        escucharVoz()
-                    } else {
-                        launcherVoz.launch(Manifest.permission.RECORD_AUDIO)
-                    }
-                }
-                val btnContactosHome = view.findViewById<Button>(R.id.btnContactosHome)
-                btnContactosHome.setOnClickListener {
-                    mostrarContactosState.value = true
-                }
-                val tvBateriaView = view.findViewById<TextView>(R.id.tvBateria)
-                tvBateria = tvBateriaView
-                tvBateriaView.text = bateria.resumen()
-                val btnGuia = view.findViewById<Button>(R.id.btnGuia)
-                btnGuia.setOnClickListener {
-                    mostrarGuia.value = true
-                }
-                view
+                    },
+                    onCerrar = { mostrarEmergencias.value = false }
+                )
             }
-        )
+            mostrarMorseHome.value -> {
+                TraductorMorseScreen(onCerrar = { mostrarMorseHome.value = false })
+            }
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .background(Primario)
+                        )
+                        Text(
+                            "ALERTA TEMPRANA",
+                            color = TextoPrincipal,
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.5.sp,
+                            modifier = Modifier.padding(top = 10.dp)
+                        )
+                        Text(
+                            "Ante catástrofes naturales",
+                            color = TextoSecundario,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val hayAlerta = alerta != null
+                    TileApp(
+                        etiqueta = "Estado de alerta",
+                        dato = if (hayAlerta) "ALERTA ACTIVA" else "SIN ALERTAS",
+                        detalle = alerta?.tipo?.uppercase() ?: "Todo en orden",
+                        colorFondo = if (hayAlerta) Emergencia else Seguro,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 120.dp)
+                    )
+
+                    Row(modifier = Modifier.padding(top = 8.dp)) {
+                        TileApp(
+                            etiqueta = "Morse",
+                            dato = "SOS",
+                            detalle = "··· --- ···",
+                            colorFondo = Primario,
+                            onClick = { mostrarMorseHome.value = true },
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 120.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TileApp(
+                            etiqueta = "Mi ubicación",
+                            dato = "Mapa",
+                            detalle = "Ver en vivo",
+                            colorFondo = Secundario,
+                            onClick = onIrAPersonal,
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 120.dp)
+                        )
+                    }
+
+                    TileApp(
+                        etiqueta = "Clima",
+                        dato = clima.value?.temperatura ?: "--",
+                        detalle = clima.value?.let {
+                            "${climaEtiqueta.value} · ${it.condicion}"
+                        } ?: climaEtiqueta.value,
+                        colorFondo = Superficie,
+                        colorTexto = TextoPrincipal,
+                        detalleColor = TextoSecundario,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                            .heightIn(min = 112.dp)
+                    )
+
+                    Column(modifier = Modifier.padding(top = 8.dp)) {
+                        Text(
+                            "Mapa en vivo",
+                            fontSize = 11.sp,
+                            letterSpacing = 1.4.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextoSecundario
+                        )
+                        AndroidView(
+                            factory = { ctx ->
+                                WebView(ctx).also { web ->
+                                    webViewClima = web
+                                    web.settings.javaScriptEnabled = true
+                                    web.settings.domStorageEnabled = true
+                                    web.settings.loadWithOverviewMode = true
+                                    web.settings.useWideViewPort = true
+                                    web.settings.userAgentString =
+                                        "Mozilla/5.0 (Linux; Android 10; SM-A505FN) AppleWebKit/537.36 " +
+                                            "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+                                    web.webViewClient = object : WebViewClient() {
+                                        override fun onReceivedError(
+                                            view: WebView,
+                                            request: WebResourceRequest,
+                                            error: WebResourceError
+                                        ) {
+                                            if (request.isForMainFrame) {
+                                                view.loadDataWithBaseURL(
+                                                    null,
+                                                    "<html><body style='text-align:center;padding:32px;color:#333;background:#fff;font-family:sans-serif;'>" +
+                                                        "No se puede cargar el clima.<br>Revisá tu conexión a internet." +
+                                                        "</body></html>",
+                                                    "text/html",
+                                                    "utf-8",
+                                                    null
+                                                )
+                                            }
+                                        }
+                                    }
+                                    web.setBackgroundColor(android.graphics.Color.WHITE)
+                                    web.post {
+                                        val gps = if (ContextCompat.checkSelfPermission(
+                                                ctx, Manifest.permission.ACCESS_FINE_LOCATION
+                                            ) == PackageManager.PERMISSION_GRANTED
+                                        ) {
+                                            ubicacion.obtenerUltima()
+                                        } else {
+                                            null
+                                        }
+                                        val lat = gps?.first ?: latDefecto
+                                        val lon = gps?.second ?: lonDefecto
+                                        cargarClima(web, lat, lon)
+                                        cargarClimaYUbicacion(lat, lon, gps != null)
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 6.dp)
+                                .height(200.dp)
+                        )
+                    }
+
+                    Row(modifier = Modifier.padding(top = 8.dp)) {
+                        TileApp(
+                            etiqueta = "Emergencias",
+                            dato = if (contactosState.value.isEmpty()) {
+                                "SIN NÚMEROS"
+                            } else {
+                                contactosState.value.joinToString(" · ") { it.telefono }
+                            },
+                            datoTamanio = 18.sp,
+                            detalle = if (contactosState.value.isEmpty()) {
+                                "Tocá para cargar"
+                            } else {
+                                "Tocá para llamar"
+                            },
+                            colorFondo = Primario,
+                            onClick = { mostrarEmergencias.value = true },
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 120.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TileApp(
+                            etiqueta = "Comunicación",
+                            dato = "Comunicar",
+                            detalle = "Grabar · Chat · Morse",
+                            colorFondo = Secundario,
+                            onClick = onIrAComunicaciones,
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 120.dp)
+                        )
+                    }
+
+                    Row(modifier = Modifier.padding(top = 8.dp)) {
+                        TileApp(
+                            etiqueta = "Voz",
+                            dato = "Asistente",
+                            detalle = vozEstado.value,
+                            colorFondo = Superficie,
+                            colorTexto = TextoPrincipal,
+                            detalleColor = TextoSecundario,
+                            onClick = {
+                                if (ContextCompat.checkSelfPermission(
+                                        context, Manifest.permission.RECORD_AUDIO
+                                    ) == PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    escucharVoz()
+                                } else {
+                                    launcherVoz.launch(Manifest.permission.RECORD_AUDIO)
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 120.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TileApp(
+                            etiqueta = "Linterna",
+                            dato = if (linterna.value) "Apagar" else "Encender",
+                            colorFondo = PrimarioClaro,
+                            colorTexto = TextoPrincipal,
+                            onClick = {
+                                device.toggle()
+                                linterna.value = device.isOn
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 120.dp)
+                        )
+                    }
+
+                    TileApp(
+                        etiqueta = "Batería",
+                        dato = bateriaEstado.value,
+                        detalle = "Estado del equipo",
+                        colorFondo = Superficie,
+                        colorTexto = TextoPrincipal,
+                        detalleColor = TextoSecundario,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                            .heightIn(min = 104.dp)
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -907,28 +1099,32 @@ fun GuiaScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Fondo)
             .padding(16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            BotonApp(
+                texto = "Volver",
+                icono = Icons.AutoMirrored.Outlined.ArrowBack,
+                onClick = onCerrar
+            )
             Text(
                 "Guía de acción",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
             )
-            androidx.compose.material3.Button(onClick = onCerrar) {
-                Text("Volver")
-            }
         }
 
         Text(
             "Seleccioná una catástrofe para ver cómo actuar",
             fontSize = 14.sp,
-            color = Color.Gray,
+            color = TextoSecundario,
             modifier = Modifier.padding(top = 8.dp)
         )
 
@@ -942,7 +1138,7 @@ fun GuiaScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 6.dp)
-                        .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
+                        .background(Superficie, RoundedCornerShape(16.dp))
                         .clickable { onSeleccionar(g.id) }
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -953,7 +1149,7 @@ fun GuiaScreen(
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.weight(1f)
                     )
-                    Text("→", fontSize = 18.sp, color = Color.Gray)
+                    Text("→", fontSize = 18.sp, color = TextoSecundario)
                 }
             }
         }
@@ -1212,22 +1408,26 @@ fun UltimasUbicacionesScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Fondo)
             .padding(16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            BotonApp(
+                texto = "Volver",
+                icono = Icons.AutoMirrored.Outlined.ArrowBack,
+                onClick = onCerrar
+            )
             Text(
                 "Últimos registros",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
             )
-            androidx.compose.material3.Button(onClick = onCerrar) {
-                Text("Volver")
-            }
         }
 
         Column(modifier = Modifier.padding(top = 16.dp)) {
@@ -1254,11 +1454,106 @@ fun UltimasUbicacionesScreen(
                                 Text(
                                     r.fecha?.let { fmt.format(it) } ?: "Fecha no disponible",
                                     fontSize = 13.sp,
-                                    color = Color.Gray
+                                    color = TextoSecundario
                                 )
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EmergenciasScreen(
+    lista: List<ContactoEmergencia>,
+    error: String?,
+    onLlamar: (ContactoEmergencia) -> Unit,
+    onCerrar: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Fondo)
+            .padding(16.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BotonApp(
+                    texto = "Volver",
+                    icono = Icons.AutoMirrored.Outlined.ArrowBack,
+                    onClick = onCerrar
+                )
+                Text(
+                    text = "EMERGENCIAS",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 12.dp)
+                )
+            }
+
+            Text(
+                text = "Números de emergencia",
+                color = TextoSecundario,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+
+            if (error != null) {
+                Text(
+                    text = "No se pudieron cargar (¿reglas?): $error",
+                    color = Emergencia,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
+
+            if (lista.isEmpty() && error == null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "No hay números de emergencia",
+                        color = TextoSecundario,
+                        fontSize = 15.sp
+                    )
+                    Text(
+                        text = "Agregalos en Firestore → numeros_emergencia",
+                        color = TextoSecundario.copy(alpha = 0.7f),
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                lista.forEach { contacto ->
+                    TileApp(
+                        etiqueta = contacto.nombre,
+                        dato = contacto.telefono,
+                        datoTamanio = 36.sp,
+                        colorFondo = Primario,
+                        onClick = { onLlamar(contacto) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                            .heightIn(min = 96.dp)
+                    )
                 }
             }
         }
@@ -1284,26 +1579,30 @@ fun ChatScreen(onCerrar: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Fondo)
             .padding(16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            BotonApp(
+                texto = "Volver",
+                icono = Icons.AutoMirrored.Outlined.ArrowBack,
+                onClick = onCerrar
+            )
             Text(
                 "Chat de asistencia",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
             )
-            androidx.compose.material3.Button(onClick = onCerrar) {
-                Text("Volver")
-            }
         }
 
         errorConexion.value?.let {
-            Text("Error: $it", color = Color.Red, fontSize = 13.sp)
+            Text("Error: $it", color = Emergencia, fontSize = 13.sp)
         }
 
         LazyColumn(
@@ -1323,14 +1622,14 @@ fun ChatScreen(onCerrar: () -> Unit) {
                             .padding(vertical = 4.dp)
                             .widthIn(max = 280.dp)
                             .background(
-                                color = if (esUsuario) Color(0xFF1E88E5) else Color(0xFFE0E0E0),
+                                color = if (esUsuario) Primario else SuperficieVariante,
                                 shape = RoundedCornerShape(12.dp)
                             )
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Text(
                             m.texto,
-                            color = if (esUsuario) Color.White else Color.Black,
+                            color = if (esUsuario) androidx.compose.ui.graphics.Color.White else TextoPrincipal,
                             fontSize = 15.sp
                         )
                     }
@@ -1349,10 +1648,12 @@ fun ChatScreen(onCerrar: () -> Unit) {
                 modifier = Modifier.weight(1f),
                 maxLines = 3
             )
-            androidx.compose.material3.Button(
+            BotonApp(
+                texto = "Enviar",
+                icono = Icons.AutoMirrored.Outlined.Send,
                 onClick = {
                     val texto = entrada.value.trim()
-                    if (texto.isEmpty()) return@Button
+                    if (texto.isEmpty()) return@BotonApp
                     entrada.value = ""
                     repo.enviar(
                         texto, "usuario",
@@ -1361,9 +1662,7 @@ fun ChatScreen(onCerrar: () -> Unit) {
                     )
                 },
                 modifier = Modifier.padding(start = 8.dp)
-            ) {
-                Text("Enviar")
-            }
+            )
         }
     }
 }
@@ -1375,6 +1674,7 @@ fun TraductorMorseScreen(onCerrar: () -> Unit) {
     val scope = rememberCoroutineScope()
     val transmitiendo = remember { mutableStateOf(false) }
     val palabras = listOf("SOS", "AYUDA", "PELIGRO", "SALIR")
+    val palabraSeleccionada = remember { mutableStateOf("SOS") }
     var permisoPendiente: String? = null
 
     val launcher = rememberLauncherForActivityResult(
@@ -1409,119 +1709,147 @@ fun TraductorMorseScreen(onCerrar: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
+            .background(Fondo)
             .padding(16.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Text(
-                text = "Traductor Morse",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Elegí una palabra y un modo de señal:",
-                modifier = Modifier.padding(top = 8.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            palabras.forEach { palabra ->
-                Column(
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BotonApp(
+                    texto = "Volver",
+                    icono = Icons.AutoMirrored.Outlined.ArrowBack,
+                    onClick = onCerrar
+                )
+                Text(
+                    text = "MORSE",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp)
-                        .background(Color.White, RoundedCornerShape(12.dp))
-                        .padding(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        .weight(1f)
+                        .padding(start = 12.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                palabras.forEachIndexed { index, palabra ->
+                    if (index > 0) Spacer(modifier = Modifier.width(8.dp))
+                    val seleccionada = palabraSeleccionada.value == palabra
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(
+                                if (seleccionada) Primario else Superficie,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .clickable { palabraSeleccionada.value = palabra }
+                            .padding(vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = palabra,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.width(110.dp)
+                            color = if (seleccionada) Color.White else TextoPrincipal,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
-                        Text(
-                            text = textoAMorse(palabra),
-                            fontSize = 13.sp,
-                            color = Color(0xFF555555)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start
-                    ) {
-                        androidx.compose.material3.Button(
-                            onClick = {
-                                if (transmisor.flashDisponible) {
-                                    if (ContextCompat.checkSelfPermission(
-                                            context, Manifest.permission.CAMERA
-                                        ) == PackageManager.PERMISSION_GRANTED
-                                    ) {
-                                        transmisor.transmitirConLinterna(
-                                            palabra, scope,
-                                            onInicio = { transmitiendo.value = true },
-                                            onFin = { transmitiendo.value = false }
-                                        )
-                                    } else {
-                                        permisoPendiente = palabra
-                                        launcher.launch(Manifest.permission.CAMERA)
-                                    }
-                                } else {
-                                    Toast.makeText(
-                                        context,
-                                        "Linterna no disponible en este dispositivo",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            },
-                            enabled = !transmitiendo.value
-                        ) {
-                            Text("🔦 Linterna")
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        androidx.compose.material3.Button(
-                            onClick = {
-                                transmisor.transmitirConSonido(
-                                    palabra, scope,
-                                    onInicio = { transmitiendo.value = true },
-                                    onFin = { transmitiendo.value = false }
-                                )
-                            },
-                            enabled = !transmitiendo.value
-                        ) {
-                            Text("🔊 Sonido")
-                        }
                     }
                 }
             }
 
-            if (!transmisor.flashDisponible) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(
-                    text = "⚠ Linterna no disponible en este dispositivo",
-                    color = Color(0xFFB71C1C),
-                    modifier = Modifier.padding(top = 12.dp)
+                    text = palabraSeleccionada.value,
+                    fontSize = 34.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = textoAMorse(palabraSeleccionada.value),
+                    fontSize = 22.sp,
+                    letterSpacing = 6.sp,
+                    color = Primario,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
 
-            if (transmitiendo.value) {
+            Text(
+                text = if (transmitiendo.value) "TRANSMITIENDO…" else "Elegí modo y transmití",
+                fontSize = 16.sp,
+                fontWeight = if (transmitiendo.value) FontWeight.Bold else FontWeight.Normal,
+                color = if (transmitiendo.value) Secundario else TextoSecundario,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 24.dp)
+            )
+
+            if (!transmisor.flashDisponible) {
                 Text(
-                    text = "Transmitiendo…",
-                    color = Color(0xFF1565C0),
-                    modifier = Modifier.padding(top = 12.dp)
+                    text = "Linterna no disponible en este dispositivo",
+                    color = Emergencia,
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
                 )
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            androidx.compose.material3.Button(
-                onClick = onCerrar,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Volver")
+            Row(modifier = Modifier.fillMaxWidth()) {
+                BotonApp(
+                    texto = "Linterna",
+                    icono = Icons.Outlined.FlashOn,
+                    onClick = {
+                        if (transmisor.flashDisponible) {
+                            if (ContextCompat.checkSelfPermission(
+                                    context, Manifest.permission.CAMERA
+                                ) == PackageManager.PERMISSION_GRANTED
+                            ) {
+                                transmisor.transmitirConLinterna(
+                                    palabraSeleccionada.value, scope,
+                                    onInicio = { transmitiendo.value = true },
+                                    onFin = { transmitiendo.value = false }
+                                )
+                            } else {
+                                permisoPendiente = palabraSeleccionada.value
+                                launcher.launch(Manifest.permission.CAMERA)
+                            }
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Linterna no disponible en este dispositivo",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    enabled = !transmitiendo.value,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                BotonApp(
+                    texto = "Sonido",
+                    icono = Icons.Outlined.VolumeUp,
+                    onClick = {
+                        transmisor.transmitirConSonido(
+                            palabraSeleccionada.value, scope,
+                            onInicio = { transmitiendo.value = true },
+                            onFin = { transmitiendo.value = false }
+                        )
+                    },
+                    enabled = !transmitiendo.value,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }

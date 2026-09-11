@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="@android:color/white">
+    android:background="@color/fondo">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -16,7 +16,7 @@
             android:id="@+id/btnVolverGuia"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-             android:text="← Volver" />
+             android:text="Volver" />
 
         <TextView
             android:id="@+id/tvTituloGuia"
@@ -24,8 +24,8 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:layout_weight="1"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textAllCaps="true"
+            android:textAppearance="@style/TituloMetro" />
     </LinearLayout>
 
     <ScrollView
@@ -42,7 +42,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="¿Qué es?"
-                android:textSize="16sp"
+                android:textAllCaps="true"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -50,29 +51,23 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:textSize="14sp" />
+                android:textSize="14sp"
+                android:textColor="@color/texto_secundario" />
 
             <ImageView
                 android:id="@+id/imgGuia"
                 android:layout_width="match_parent"
                 android:layout_height="200dp"
                 android:layout_marginTop="8dp"
-                android:contentDescription="Imagen de la catástrofe"
-                android:scaleType="centerCrop" />
+                android:scaleType="centerCrop"
+                android:background="@drawable/bg_tile"
+                android:contentDescription="Imagen de la catástrofe" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
                 android:text="Video explicativo"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="Video explicativo"
+                android:textAllCaps="true"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -85,9 +80,10 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="16dp"
                 android:text="¿Cómo actuar?"
-                android:textSize="16sp"
+                android:textAllCaps="true"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
             <LinearLayout

@@ -2,10 +2,18 @@ package com.example.alertatemprana.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// Paleta oficial de la app (alerta / información)
+val Primario = Color(0xFF5B4B8A)
+val Secundario = Color(0xFF246B7A)
+val Fondo = Color(0xFFE9F1EC)
+val Superficie = Color(0xFFFFFFFF)
+val SuperficieVariante = Color(0xFFE9ECEF)
+val TextoPrincipal = Color(0xFF1F2933)
+val TextoSecundario = Color(0xFF667085)
+val Emergencia = Color(0xFFD64545)
+val Advertencia = Color(0xFFE89B3D)
+val Seguro = Color(0xFF3A9D72)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Containers suaves para superficies y barra de navegación
+val PrimarioClaro = Color(0xFFE3DDF0)
+val SecundarioClaro = Color(0xFFD6E7EC)

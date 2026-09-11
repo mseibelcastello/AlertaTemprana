@@ -9,8 +9,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
@@ -21,18 +30,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.example.alertatemprana.ui.theme.AlertaTempranaTheme
+import com.example.alertatemprana.ui.theme.Emergencia
+import com.example.alertatemprana.ui.theme.Superficie
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.rememberCoroutineScope
-import com.example.alertatemprana.R
 import com.example.alertatemprana.data.source.device.AlertaDispositivo
 import com.example.alertatemprana.data.source.firebase.AlertaCatastrofe
 import com.example.alertatemprana.data.source.firebase.AlertasRepository
@@ -84,6 +95,7 @@ fun AlertaTempranaApp() {
     val alertasRepository = remember { AlertasRepository() }
     val alertaDispositivo = remember { AlertaDispositivo(contexto) }
     val alertaActiva = remember { mutableStateOf<AlertaCatastrofe?>(null) }
+    val alertaReconocida = remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         var avisoMostrado = false
@@ -91,7 +103,10 @@ fun AlertaTempranaApp() {
             onAlerta = { alerta ->
                 val anterior = alertaActiva.value
                 alertaActiva.value = alerta
-                if (alerta != null && anterior == null) {
+                if (alerta == null) {
+                    alertaReconocida.value = false
+                } else if (!alertaReconocida.value &&
+                    (anterior == null || anterior.id != alerta.id)) {
                     alertaDispositivo.activar()
                 }
             },
@@ -119,7 +134,7 @@ fun AlertaTempranaApp() {
                     item(
                         icon = {
                             Icon(
-                                painterResource(destination.icon),
+                                destination.icono,
                                 contentDescription = destination.label
                             )
                         },
@@ -142,20 +157,31 @@ fun AlertaTempranaApp() {
             ) { page ->
                 when (page) {
                     0 -> CommunicationsScreen()
-                    1 -> HomeScreen()
+                    1 -> HomeScreen(
+                        alerta = alertaActiva.value,
+                        onIrAComunicaciones = {
+                            scope.launch { pagerState.animateScrollToPage(0) }
+                        },
+                        onIrAPersonal = {
+                            scope.launch { pagerState.animateScrollToPage(2) }
+                        }
+                    )
                     2 -> PersonalScreen()
                 }
             }
         }
 
-        alertaActiva.value?.let { alerta ->
-            PantallaAlerta(
-                alerta = alerta,
-                onEnterado = {
-                    alertaDispositivo.desactivar()
-                    alertaActiva.value = null
-                }
-            )
+        if (alertaActiva.value != null && !alertaReconocida.value) {
+            val alerta = alertaActiva.value
+            if (alerta != null) {
+                PantallaAlerta(
+                    alerta = alerta,
+                    onEnterado = {
+                        alertaDispositivo.desactivar()
+                        alertaReconocida.value = true
+                    }
+                )
+            }
         }
     }
 }
@@ -165,16 +191,23 @@ fun PantallaAlerta(alerta: AlertaCatastrofe, onEnterado: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFD32F2F))
+            .background(Emergencia)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Icon(
+            imageVector = Icons.Outlined.WarningAmber,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(64.dp)
+        )
         Text(
-            text = "🚨 ALERTA ACTIVA",
+            text = "ALERTA ACTIVA",
             color = Color.White,
             fontSize = 26.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 12.dp)
         )
         Text(
             text = alerta.tipo,
@@ -192,18 +225,30 @@ fun PantallaAlerta(alerta: AlertaCatastrofe, onEnterado: () -> Unit) {
         )
         androidx.compose.material3.Button(
             onClick = onEnterado,
-            modifier = Modifier.padding(top = 32.dp)
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Superficie,
+                contentColor = Emergencia
+            ),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .padding(top = 32.dp)
+                .height(56.dp)
         ) {
-            Text("Entendido")
+            Icon(
+                imageVector = Icons.Outlined.Check,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp)
+            )
+            Text(" Entendido", fontSize = 16.sp)
         }
     }
 }
 
 enum class AppDestinations(
     val label: String,
-    val icon: Int,
+    val icono: ImageVector,
 ) {
-    COMMUNICATIONS("Comunicaciones", R.drawable.ic_call),
-    HOME("Home", R.drawable.ic_home),
-    PERSONAL("Personal", R.drawable.ic_account_box),
+    COMMUNICATIONS("Comunicaciones", Icons.Outlined.Call),
+    HOME("Home", Icons.Outlined.Home),
+    PERSONAL("Personal", Icons.Outlined.Person),
 }

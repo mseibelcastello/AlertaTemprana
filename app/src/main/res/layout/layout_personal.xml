@@ -5,15 +5,37 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="@android:color/white">
+    android:background="@color/fondo">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:text="Mi ubicación"
-        android:textSize="20sp"
-        android:textStyle="bold" />
+        android:orientation="vertical">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:background="@color/primario" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Mi ubicación"
+            android:textColor="@color/texto_principal"
+            android:textAllCaps="true"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.05" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Tu posición en vivo y ubicaciones registradas"
+            android:textColor="@color/texto_secundario"
+            android:textSize="13sp" />
+    </LinearLayout>
 
     <org.osmdroid.views.MapView
         android:id="@+id/mapPersonal"
@@ -29,6 +51,7 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="8dp"
         android:text="Powered by Esri"
+        android:textColor="@color/texto_secundario"
         android:textSize="12sp" />
 
     <TextView
@@ -36,19 +59,21 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="Dirección actual"
-        android:textSize="14sp"
+        android:textAllCaps="true"
+        android:textSize="13sp"
+        android:textColor="@color/texto_secundario"
         android:textStyle="bold" />
 
     <TextView
         android:id="@+id/tvDireccion"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:text="Buscando dirección..."
         android:textSize="16sp" />
 
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="16dp"
@@ -56,15 +81,17 @@
 
         <Button
             android:id="@+id/btnRegistrarUbicacion"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="Registrar mi ubicación" />
 
         <Button
             android:id="@+id/btnVerUltimas"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
+            android:layout_weight="1"
             android:text="Ver últimas" />
 
     </LinearLayout>
