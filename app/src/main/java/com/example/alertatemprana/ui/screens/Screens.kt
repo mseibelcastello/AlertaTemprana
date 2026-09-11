@@ -29,14 +29,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -67,8 +70,10 @@ import com.example.alertatemprana.data.source.device.GrabadorAudio
 import com.example.alertatemprana.data.source.device.GrabadorVideo
 import com.example.alertatemprana.data.source.device.Linterna
 import com.example.alertatemprana.data.source.device.Ubicacion
+import com.example.alertatemprana.data.source.firebase.ChatRepository
 import com.example.alertatemprana.data.source.firebase.ContactoEmergencia
 import com.example.alertatemprana.data.source.firebase.ContactosRepository
+import com.example.alertatemprana.data.source.firebase.MensajeChat
 import com.example.alertatemprana.data.source.firebase.RegistroUbicacion
 import com.example.alertatemprana.data.source.firebase.UbicacionesRepository
 
@@ -266,6 +271,7 @@ fun CommunicationsScreen() {
     var btnSelfie: Button? = null
     var btnVerUltima: Button? = null
     var btnGrabar: Button? = null
+    var btnChat: Button? = null
 
     val empezarVideoGrabacion: (Boolean) -> Unit = { esSelfie ->
         viewFinder?.visibility = View.VISIBLE
@@ -292,8 +298,14 @@ fun CommunicationsScreen() {
     }
 
     val mostrarGrabacionState = remember { mutableStateOf(false) }
+    val mostrarChat = remember { mutableStateOf(false) }
 
-    if (mostrarGrabacionState.value) {
+    BackHandler(enabled = mostrarChat.value) {
+        mostrarChat.value = false
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (mostrarGrabacionState.value) {
         AndroidView(
             modifier = Modifier.fillMaxSize(),
         factory = { ctx ->
@@ -421,9 +433,18 @@ fun CommunicationsScreen() {
                 btnGrabar?.setOnClickListener {
                     mostrarGrabacionState.value = true
                 }
+                btnChat = view.findViewById(R.id.btnChat)
+                btnChat?.setOnClickListener {
+                    mostrarChat.value = true
+                }
                 view
             }
         )
+    }
+
+        if (mostrarChat.value) {
+            ChatScreen(onCerrar = { mostrarChat.value = false })
+        }
     }
 }
 
@@ -802,8 +823,8 @@ fun PersonalScreen() {
                     marcador.value = Marker(mapa).also { m ->
                         m.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                         m.title = "Mi ubicación"
-                        m.position = GeoPoint(it.first, it.second)
-                        mapa.overlays.add(m)
+                            m.position = GeoPoint(it.first, it.second)
+                            mapa.overlays.add(m)
                     }
                     primeraPosicion.value = false
                 }
@@ -900,7 +921,7 @@ fun UltimasUbicacionesScreen(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f)
             )
-            Button(onClick = onCerrar) {
+            androidx.compose.material3.Button(onClick = onCerrar) {
                 Text("Volver")
             }
         }
@@ -935,6 +956,109 @@ fun UltimasUbicacionesScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ChatScreen(onCerrar: () -> Unit) {
+    val repo = remember { ChatRepository() }
+    val mensajes = remember { mutableStateOf<List<MensajeChat>>(emptyList()) }
+    val entrada = remember { mutableStateOf("") }
+    val errorConexion = remember { mutableStateOf<String?>(null) }
+
+    DisposableEffect(Unit) {
+        val listener = repo.escuchar { m ->
+            val lista = mensajes.value.toMutableList()
+            lista.add(m)
+            mensajes.value = lista
+        }
+        onDispose { repo.detener(listener) }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Chat de asistencia",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            androidx.compose.material3.Button(onClick = onCerrar) {
+                Text("Volver")
+            }
+        }
+
+        errorConexion.value?.let {
+            Text("Error: $it", color = Color.Red, fontSize = 13.sp)
+        }
+
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            items(mensajes.value) { m ->
+                val esUsuario = m.emisor == "usuario"
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = if (esUsuario) Arrangement.End else Arrangement.Start
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(vertical = 4.dp)
+                            .widthIn(max = 280.dp)
+                            .background(
+                                color = if (esUsuario) Color(0xFF1E88E5) else Color(0xFFE0E0E0),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            m.texto,
+                            color = if (esUsuario) Color.White else Color.Black,
+                            fontSize = 15.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = entrada.value,
+                onValueChange = { entrada.value = it },
+                placeholder = { Text("Escribí un mensaje...") },
+                modifier = Modifier.weight(1f),
+                maxLines = 3
+            )
+            androidx.compose.material3.Button(
+                onClick = {
+                    val texto = entrada.value.trim()
+                    if (texto.isEmpty()) return@Button
+                    entrada.value = ""
+                    repo.enviar(
+                        texto, "usuario",
+                        onOk = {},
+                        onError = { errorConexion.value = it }
+                    )
+                },
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Text("Enviar")
             }
         }
     }
