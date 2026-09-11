@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -66,6 +67,7 @@ import org.osmdroid.views.overlay.Marker
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.example.alertatemprana.R
+import com.example.alertatemprana.data.source.device.Bateria
 import com.example.alertatemprana.data.source.device.GrabadorAudio
 import com.example.alertatemprana.data.source.device.GrabadorVideo
 import com.example.alertatemprana.data.source.device.Linterna
@@ -452,12 +454,14 @@ fun CommunicationsScreen() {
 fun HomeScreen() {
     val context = LocalContext.current
     val device = remember { Linterna(context) }
+    val bateria = remember { Bateria(context) }
     val ubicacion = remember { Ubicacion(context) }
     val scope = rememberCoroutineScope()
     var webViewClima: WebView? = null
     var tvClimaTemp: TextView? = null
     var tvClimaCond: TextView? = null
     var tvClimaDet: TextView? = null
+    var tvBateria: TextView? = null
     val latDefecto = -35.6566
     val lonDefecto = -63.7575
 
@@ -560,6 +564,13 @@ fun HomeScreen() {
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(30_000)
+            tvBateria?.text = bateria.resumen()
         }
     }
 
@@ -691,6 +702,9 @@ fun HomeScreen() {
                 btnContactosHome.setOnClickListener {
                     mostrarContactosState.value = true
                 }
+                val tvBateriaView = view.findViewById<TextView>(R.id.tvBateria)
+                tvBateria = tvBateriaView
+                tvBateriaView.text = bateria.resumen()
                 view
             }
         )
