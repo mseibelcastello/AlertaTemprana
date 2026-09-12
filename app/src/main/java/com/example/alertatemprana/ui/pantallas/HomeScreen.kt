@@ -425,11 +425,14 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         TileApp(
-                            etiqueta = "Mi ubicación",
-                            dato = "Mapa",
-                            detalle = "Ver en vivo",
-                            colorFondo = Secundario,
-                            onClick = onIrAPersonal,
+                            etiqueta = "Linterna",
+                            dato = if (linterna.value) "Apagar" else "Encender",
+                            colorFondo = PrimarioClaro,
+                            colorTexto = TextoPrincipal,
+                            onClick = {
+                                device.toggle()
+                                linterna.value = device.isOn
+                            },
                             modifier = Modifier
                                 .weight(1f)
                                 .heightIn(min = 120.dp)
@@ -546,6 +549,20 @@ fun HomeScreen(
                         )
                     }
 
+                    TileApp(
+                        etiqueta = "Consejos",
+                        dato = "Guía",
+                        detalle = "Cómo actuar ante cada catástrofe",
+                        colorFondo = Superficie,
+                        colorTexto = TextoPrincipal,
+                        detalleColor = TextoSecundario,
+                        onClick = { mostrarGuia.value = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                            .heightIn(min = 120.dp)
+                    )
+
                     Row(modifier = Modifier.padding(top = 8.dp)) {
                         TileApp(
                             etiqueta = "Voz",
@@ -570,14 +587,11 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         TileApp(
-                            etiqueta = "Linterna",
-                            dato = if (linterna.value) "Apagar" else "Encender",
-                            colorFondo = PrimarioClaro,
-                            colorTexto = TextoPrincipal,
-                            onClick = {
-                                device.toggle()
-                                linterna.value = device.isOn
-                            },
+                            etiqueta = "Mi ubicación",
+                            dato = "Mapa",
+                            detalle = "Ver en vivo",
+                            colorFondo = Secundario,
+                            onClick = onIrAPersonal,
                             modifier = Modifier
                                 .weight(1f)
                                 .heightIn(min = 120.dp)
