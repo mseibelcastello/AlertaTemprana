@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "AlertaTemprana — Contexto del sistema",
+    "output": "AlertaTemprana-context.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/mseibelcastello/AlertaTemprana",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "65bcca7c9567f76fac5611293dc4fd407bf944a2"
+    },
+    "viewBox": [1160, 1060],
+    "views": [
+      { "id": "alert-flow", "label": "Flujo de alerta", "focus": ["firebase", "app", "usuario"], "note": "La alerta catastrófica viaja Firestore → app → persona: overlay de pantalla completa más alarma (sonido y vibración)." },
+      { "id": "web-apis", "label": "Servicios web", "focus": ["app", "openmeteo", "geocoding", "esri", "windy", "youtube"], "note": "HTTPS hacia Open-Meteo, geocodificación (Nominatim · Photon · BigDataCloud), mapas Esri, widget Windy y videos de YouTube." }
+    ]
+  },
+  "components": [
+    { "id": "usuario", "type": "external", "label": "Persona", "sublabel": "recibe la alerta · actúa", "pos": [60, 290], "size": [200, 110] },
+    { "id": "app", "type": "frontend", "label": "AlertaTemprana", "sublabel": "app Android · Kotlin + Compose", "tag": "este sistema", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/ui/MainActivity.kt", "line": 74 }, { "path": "app/src/main/java/com/example/alertatemprana/ui/pantallas/PantallaAlerta.kt", "line": 31 }], "pos": [380, 280], "size": [260, 150] },
+    { "id": "firebase", "type": "cloud", "label": "Google Firebase", "sublabel": "Firestore · Realtime Database", "tag": "snapshots en vivo", "brand": "firebase", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/datos/firebase/alerts.kt", "line": 8 }, { "path": "app/src/main/java/com/example/alertatemprana/datos/firebase/chat.kt", "line": 13 }], "pos": [820, 60], "size": [200, 100] },
+    { "id": "openmeteo", "type": "external", "label": "Open-Meteo", "sublabel": "pronóstico del clima", "tag": "GET /v1/forecast", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/ui/pantallas/HomeScreen.kt", "line": 238 }], "pos": [820, 230], "size": [200, 100] },
+    { "id": "geocoding", "type": "external", "label": "Geocodificación inversa", "sublabel": "Nominatim · Photon · BigDataCloud", "tag": "HTTPS · JSON", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/datos/Geocodificador.kt", "line": 9 }], "pos": [820, 400], "size": [200, 100] },
+    { "id": "esri", "type": "external", "label": "Esri ArcGIS", "sublabel": "losetas World Street Map", "tag": "XYZ tiles", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/ui/pantallas/PersonalScreen.kt", "line": 123 }], "pos": [820, 570], "size": [200, 100] },
+    { "id": "windy", "type": "external", "label": "Windy", "sublabel": "mapa de pronóstico", "tag": "iframe embebido", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/ui/pantallas/HomeScreen.kt", "line": 224 }], "pos": [820, 740], "size": [200, 100] },
+    { "id": "youtube", "type": "external", "label": "YouTube", "sublabel": "videos de guía", "tag": "WebView · iframe", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/ui/pantallas/GuiaDetalleScreen.kt", "line": 147 }], "pos": [820, 910], "size": [200, 100] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "AlertaTemprana · este sistema", "wraps": ["app"] },
+    { "kind": "region", "label": "Servicios externos · Internet (HTTPS)", "wraps": ["firebase", "openmeteo", "geocoding", "esri", "windy", "youtube"] }
+  ],
+  "connections": [
+    { "id": "firebase-app", "from": "firebase", "to": "app", "label": "alerta activa", "labelAt": [680, 52], "variant": "emphasis", "width": 2.4, "fromSide": "left", "toSide": "right" },
+    { "id": "app-usuario", "from": "app", "to": "usuario", "label": "alerta visual · sonido · vibración", "labelAt": [356, 444], "variant": "emphasis", "width": 2.4, "fromSide": "left", "toSide": "right" },
+    { "id": "app-clima", "from": "app", "to": "openmeteo", "label": "clima · JSON", "labelAt": [680, 195], "fromSide": "right", "toSide": "left" },
+    { "id": "app-geocoding", "from": "app", "to": "geocoding", "label": "dirección", "labelAt": [680, 535], "fromSide": "right", "toSide": "left" },
+    { "id": "app-mapas", "from": "app", "to": "esri", "label": "losetas · XYZ", "labelAt": [680, 705], "fromSide": "right", "toSide": "left" },
+    { "id": "app-windy", "from": "app", "to": "windy", "label": "pronóstico", "labelAt": [680, 875], "fromSide": "right", "toSide": "left" },
+    { "id": "app-youtube", "from": "app", "to": "youtube", "label": "guías · video", "labelAt": [680, 1030], "fromSide": "right", "toSide": "left" }
+  ]
+}

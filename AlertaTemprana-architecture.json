@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "AlertaTemprana — Arquitectura de la app Android",
+    "output": "AlertaTemprana-architecture.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/mseibelcastello/AlertaTemprana",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "65bcca7c9567f76fac5611293dc4fd407bf944a2"
+    },
+    "viewBox": [1370, 1500],
+    "views": [
+      { "id": "alert-flow", "label": "Catastrophe alert flow", "focus": ["firestore", "repo-alertas", "app", "pantalla-alerta", "alerta-dispositivo", "home"], "note": "A catastrophe alert travels Firestore → AlertasRepository → Compose state → overlay screen and device alarm." },
+      { "id": "navigation", "label": "Screen navigation", "focus": ["main-activity", "app", "comunicaciones", "home", "personal", "sub-pantallas"], "note": "Three pager destinations plus state-driven flow screens with BackHandler, no NavHost." },
+      { "id": "reactive-data", "label": "Live Firebase data", "focus": ["firestore", "rtdb", "repo-alertas", "repo-datos"], "note": "Repositories subscribe through Firebase snapshot listeners and push through the chat child listener." },
+      { "id": "device-and-web", "label": "Device services and web APIs", "focus": ["device-services", "clima-geocoding", "web-apis", "personal", "home"], "note": "On-device services plus external HTTP and map-tile backends." }
+    ]
+  },
+  "components": [
+    { "id": "firestore", "type": "database", "label": "Firebase Firestore", "sublabel": "alertas · numeros · ubicaciones", "brand": "firebase", "tag": "snapshots en vivo", "pos": [60, 230], "size": [200, 92] },
+    { "id": "rtdb", "type": "database", "label": "Firebase Realtime DB", "sublabel": "mensajes (chat)", "brand": "firebase", "tag": "push() · listener", "pos": [60, 450], "size": [200, 92] },
+    { "id": "repo-alertas", "type": "backend", "label": "AlertasRepository", "sublabel": "escucharActiva() · alertas", "tag": "addSnapshotListener", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/datos/firebase/alerts.kt", "line": 8 }, { "path": "app/src/main/java/com/example/alertatemprana/datos/firebase/alerts.kt", "line": 16 }], "pos": [320, 230], "size": [200, 92] },
+    { "id": "repo-datos", "type": "backend", "label": "Repos de datos", "sublabel": "Contactos · Chat · Ubicaciones", "tag": "snapshots + child push()", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/datos/firebase/chat.kt", "line": 10 }], "pos": [320, 450], "size": [200, 92] },
+    { "id": "modelos", "type": "backend", "label": "Modelos de datos", "sublabel": "AlertaCatastrofe · Contacto · Clima", "tag": "Ubicacion · Mensaje · Guia", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/modelos/AlertaCatastrofe.kt", "line": 3 }], "pos": [320, 640], "size": [200, 54] },
+    { "id": "comunicaciones", "type": "frontend", "label": "CommunicationsScreen", "sublabel": "página 0 · morse, chat, grabación", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/ui/pantallas/CommunicationsScreen.kt", "line": 121 }], "pos": [580, 480], "size": [200, 92] },
+    { "id": "home", "type": "frontend", "label": "HomeScreen", "sublabel": "página 1 · alerta, clima, guías", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/ui/pantallas/HomeScreen.kt", "line": 121 }], "pos": [580, 660], "size": [200, 92] },
+    { "id": "personal", "type": "frontend", "label": "PersonalScreen", "sublabel": "página 2 · mapa, GPS, ubicaciones", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/ui/pantallas/PersonalScreen.kt", "line": 133 }], "pos": [580, 840], "size": [200, 92] },
+    { "id": "app", "type": "frontend", "label": "AlertaTempranaApp", "sublabel": "suscribe alertas · HorizontalPager", "tag": "3 destinos", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/ui/MainActivity.kt", "line": 74 }, { "path": "app/src/main/java/com/example/alertatemprana/ui/MainActivity.kt", "line": 83 }], "pos": [840, 210], "size": [200, 92] },
+    { "id": "main-activity", "type": "frontend", "label": "MainActivity", "sublabel": "ComponentActivity · single-activity", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/ui/MainActivity.kt", "line": 43 }], "pos": [840, 102], "size": [200, 56] },
+    { "id": "device-services", "type": "backend", "label": "Servicios del dispositivo", "sublabel": "Linterna · GPS · Morse · Grabador", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/datos/device/Linterna.kt", "line": 7 }], "pos": [840, 520], "size": [200, 92] },
+    { "id": "pantalla-alerta", "type": "frontend", "label": "PantallaAlerta", "sublabel": "overlay «ALERTA ACTIVA» · Entendido", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/ui/pantallas/PantallaAlerta.kt", "line": 31 }], "pos": [1100, 210], "size": [200, 92] },
+    { "id": "alerta-dispositivo", "type": "backend", "label": "AlertaDispositivo", "sublabel": "R.raw.alerta + vibración", "tag": "activar() · desactivar()", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/datos/device/AlertaDispositivo.kt", "line": 13 }], "pos": [1100, 400], "size": [200, 92] },
+    { "id": "sub-pantallas", "type": "frontend", "label": "Pantallas de flujo", "sublabel": "Chat · Morse · Guía · Emergencias", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/ui/pantallas/ChatScreen.kt", "line": 121 }], "pos": [1100, 590], "size": [200, 88] },
+    { "id": "clima-geocoding", "type": "backend", "label": "ClimaServicio + Geocodificador", "sublabel": "pedirHttp() · buscarDireccion()", "sources": [{ "path": "app/src/main/java/com/example/alertatemprana/datos/ClimaServicio.kt", "line": 42 }, { "path": "app/src/main/java/com/example/alertatemprana/datos/Geocodificador.kt", "line": 90 }], "pos": [1100, 740], "size": [200, 88] },
+    { "id": "web-apis", "type": "external", "label": "APIs y mapas web", "sublabel": "Open-Meteo · Nominatim · OSM/Esri", "tag": "HTTPS · JSON · osmdroid 6.1.20", "pos": [1100, 900], "size": [200, 88] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Firebase · proyecto alertatemprana-47c0e", "wraps": ["firestore", "rtdb"] },
+    { "kind": "region", "label": "Capa de datos (in-app) · datos/ y modelos/", "wraps": ["repo-alertas", "repo-datos", "modelos"] },
+    { "kind": "region", "label": "Capa de presentación · Jetpack Compose", "wraps": ["main-activity", "app", "comunicaciones", "home", "personal", "pantalla-alerta", "alerta-dispositivo", "sub-pantallas"] }
+  ],
+  "connections": [
+    { "id": "firestore-alertas", "from": "firestore", "to": "repo-alertas", "label": "alertas (snapshot)", "labelAt": [245, 336], "variant": "emphasis", "width": 2.4, "fromSide": "right", "toSide": "left" },
+    { "id": "firestore-datos", "from": "firestore", "to": "repo-datos", "label": "contactos · ubicaciones", "labelAt": [300, 580], "via": [[300, 276], [300, 496]], "fromSide": "right", "toSide": "left" },
+    { "id": "rtdb-datos", "from": "rtdb", "to": "repo-datos", "label": "mensajes", "labelAt": [290, 548], "fromSide": "right", "toSide": "left" },
+    { "id": "alertas-app", "from": "repo-alertas", "to": "app", "label": "onAlerta(AlertaCatastrofe?)", "variant": "emphasis", "width": 2.4, "fromSide": "right", "toSide": "left" },
+    { "id": "datos-home", "from": "repo-datos", "to": "home", "label": "contactos en vivo", "labelAt": [645, 800], "via": [[555, 496], [555, 706]], "fromSide": "right", "toSide": "left" },
+    { "id": "datos-comunicaciones", "from": "repo-datos", "to": "comunicaciones", "label": "chat · escuchar()", "labelAt": [645, 600], "via": [[535, 496], [535, 526]], "fromSide": "right", "toSide": "left" },
+    { "id": "datos-personal", "from": "repo-datos", "to": "personal", "label": "ubicaciones leídas", "labelAt": [650, 826], "via": [[545, 496], [545, 886]], "fromSide": "right", "toSide": "left" },
+    { "id": "app-comunicaciones", "from": "app", "to": "comunicaciones", "label": "página 0 · pager", "fromSide": "bottom", "toSide": "right" },
+    { "id": "app-overlay", "from": "app", "to": "pantalla-alerta", "label": "overlay ALERTA ACTIVA", "labelAt": [1070, 178], "variant": "emphasis", "width": 2.2, "fromSide": "right", "toSide": "left" },
+    { "id": "app-alarma", "from": "app", "to": "alerta-dispositivo", "label": "activar() · desactivar()", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "id": "comunicaciones-device", "from": "comunicaciones", "to": "device-services", "label": "Grabador · Morse · Voz", "labelAt": [660, 630], "fromSide": "right", "toSide": "left" },
+    { "id": "home-clima", "from": "home", "to": "clima-geocoding", "label": "clima (Open-Meteo)", "fromSide": "right", "toSide": "left" },
+    { "id": "clima-web", "from": "clima-geocoding", "to": "web-apis", "label": "HTTP GET · JSON", "labelAt": [1275, 864], "fromSide": "bottom", "toSide": "top" },
+    { "id": "personal-web", "from": "personal", "to": "web-apis", "label": "MapView · losetas Esri", "fromSide": "right", "toSide": "left" },
+    { "id": "main-app", "from": "main-activity", "to": "app", "label": "setContent()", "labelAt": [985, 184], "fromSide": "bottom", "toSide": "top" },
+    { "id": "home-sub", "from": "home", "to": "sub-pantallas", "label": "Guía · Emergencias", "fromSide": "right", "toSide": "left" },
+    { "id": "comunicaciones-sub", "from": "comunicaciones", "to": "sub-pantallas", "label": "Chat · Morse", "labelAt": [842, 650], "fromSide": "right", "toSide": "left" }
+  ],
+  "cards": [
+    { "dot": "rose", "title": "Flujo de la alerta de catástrofe", "items": ["Firestore `alertas` → AlertasRepository.escucharActiva()", "AlertaTempranaApp guarda `alertaActiva` y llama AlertaDispositivo.activar()", "La PantallaAlerta (overlay) exige «Entendido» antes de desactivar sirena y vibración"] },
+    { "dot": "emerald", "title": "Datos reactivos en vivo", "items": ["Alertas, contactos y ubicaciones usan snapshot listeners de Firestore", "El chat usa Realtime Database con push() y ChildEventListener", "Cada callback del repositorio refresca estado de Compose"] },
+    { "dot": "cyan", "title": "Navegación sin NavHost", "items": ["MainActivity monta AlertaTempranaApp con NavigationSuiteScaffold + HorizontalPager", "Tres destinos: Comunicaciones · Home · Personal", "Las pantallas de flujo (chat, morse, guías) se abren con estado booleano + BackHandler"] },
+    { "dot": "amber", "title": "Servicios del dispositivo", "items": ["Sirena + vibración (AlertaDispositivo), linterna, morse, GPS, grabación, voz y batería", "osmdroid 6.1.20 renderiza losetas OSM/Esri en PersonalScreen", "Clima y geocodificación vía HTTP a APIs públicas"] }
+  ]
+}
